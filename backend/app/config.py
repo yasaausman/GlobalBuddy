@@ -95,6 +95,14 @@ class Settings(BaseSettings):
     linkedin_client_secret: str = Field(default="")
     linkedin_redirect_uri: str = Field(default="http://localhost:8000/v1/auth/linkedin/callback")
 
+    # -- Xano migration (M18+) -----------------------------------------------------
+    # Once set, the sidecar requires X-Sidecar-Key on agent-only routes and a signed
+    # stream token on /v1/chat/stream, instead of accepting unauthenticated calls.
+    xano_base_url: str = Field(default="", description="Xano API group base URL")
+    sidecar_shared_secret: str = Field(
+        default="", description="Xano -> FastAPI sidecar shared secret (X-Sidecar-Key)"
+    )
+
     cors_origins: str = Field(default="http://localhost:5173")
 
     @field_validator("cors_origins", mode="before")

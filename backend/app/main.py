@@ -14,6 +14,13 @@ from app.auth import bearer_token_from_header, is_public_api_path, verify_jwt_to
 from app.config import get_settings
 from app.db.neo4j_client import Neo4jClient
 from app.db.postgres import PostgresDatabase
+from app.sidecar_auth import (
+    is_sidecar_only_path,
+    is_stream_token_path,
+    sidecar_auth_configured,
+    verify_sidecar_key,
+    verify_stream_token,
+)
 from app.routers import (
     auth,
     bridge,
@@ -78,6 +85,34 @@ class _AuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class _SidecarKeyMiddleware(BaseHTTPMiddleware):
+    """Authenticate Xano -> sidecar calls once M18's Xano workspace is live.
+
+    A no-op while ``SIDECAR_SHARED_SECRET`` is unset, so today's Neon-Auth-protected
+    app is unaffected. Once set: agent-only paths require the exact shared secret in
+    ``X-Sidecar-Key``; the browser-facing stream route accepts a short-lived signed
+    token instead, since the shared secret itself must never reach the browser.
+    """
+
+    async def dispatch(self, request: Request, call_next: object) -> Response:
+        settings = get_settings()
+        if not sidecar_auth_configured(settings):
+            return await call_next(request)
+
+        path = request.url.path
+        if is_sidecar_only_path(path):
+            if not verify_sidecar_key(request.headers.get("X-Sidecar-Key"), settings):
+                return JSONResponse(status_code=401, content={"detail": "Invalid or missing sidecar key."})
+        elif is_stream_token_path(path):
+            stream_token = request.query_params.get("stream_token", "")
+            user_id = verify_stream_token(stream_token, settings) if stream_token else None
+            if user_id is None:
+                return JSONResponse(status_code=401, content={"detail": "Invalid or expired stream token."})
+            request.state.sidecar_user_id = user_id
+
+        return await call_next(request)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
@@ -111,6 +146,7 @@ def create_app() -> FastAPI:
     # Regex covers localhost / 127.0.0.1 / [::1] with any port (browser Origin must match for CORS).
     _local_origin_regex = r"https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
     app.add_middleware(_RequestTelemetryMiddleware)
+    app.add_middleware(_SidecarKeyMiddleware)
     app.add_middleware(_AuthMiddleware)
     app.add_middleware(
         CORSMiddleware,

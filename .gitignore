@@ -66,3 +66,6 @@ Thumbs.db
 # VS Code (optional: uncomment to ignore all local VS Code settings)
 # .vscode/
 .rocketride/
+
+# migrate_neon_to_xano.py resumable state (scripts/migrate_neon_to_xano.py)
+scripts/.neon_to_xano_id_map.json
