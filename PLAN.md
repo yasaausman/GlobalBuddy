@@ -20,10 +20,11 @@
 | Layer | Choice | Reason |
 |---|---|---|
 | Frontend | React 18 + Vite + React Router | Already built; React Router adds multi-page routing without full Next.js migration |
-| Backend | FastAPI (Python) | Already built; owns AI, graph indexing, ranking, and Pydantic contracts |
+| Backend | **Xano** | System of record from M18: auth, pipeline state, gates, and workflow logic (hackathon Xano track requirement) |
+| Compute sidecar | FastAPI (Python), stateless | Holds no user data. Markdown graph traversal, AI plan/bridge, SSE chat, and the document agent — none of which fit a Xano function stack |
 | Knowledge Graph | Markdown + YAML frontmatter + `[[wikilinks]]` | Obsidian-style graph stored in Git; free, editable, easy to validate and demo |
-| Relational DB | Neon Postgres | User accounts, plan progress, chat, connections, feed, mentor profiles, notifications |
-| Auth | Neon Auth | Managed auth synced into Neon Postgres; keeps auth + user data on one default platform |
+| Relational DB | Xano (Neon during migration) | M18 ports auth + the demo-path tables; the remaining 8 stay on Neon until M22 (post-deadline) |
+| Auth | Xano built-in auth | Replaces Neon Auth in M18 at byte-for-byte endpoint parity; adds a `student`/`advisor` role |
 | Realtime | Deferred; SSE/WebSocket when needed | Avoids provider-specific realtime dependency during MVP |
 | Storage | Cloudflare R2, optional later | Profile photos and uploads only when product needs them |
 | Cache | Upstash Redis | Session cache, rate limiting; free tier sufficient for dev |
@@ -31,6 +32,10 @@
 | AI (fast fallback) | Groq (Llama 3) | Sub-200ms responses; free tier for lightweight queries (cultural bridge, chat) |
 | Maps | Leaflet + OpenStreetMap | 100% free, no API key, replaces Google Maps links with real embedded maps |
 | Email | Resend | 3k free emails/month; intro requests, welcome emails, notifications |
+| Document extraction | Nutrient DWS (API + Viewer) | I-20 field extraction with confidence scores; Viewer renders the source doc with confidence overlays |
+| Document generation | Doctavian | Branch-resolved form generation via their generation API |
+| PDF assembly + eSign | Foxit PDF Services (MCP) + eSign | Packet assembly (convert/merge/stamp/flatten) and the human signature handoff |
+| Live web data | SerpApi | Processing times, school ISSS requirements, and policy changes that force fields back to review |
 | Hosting (frontend) | Vercel | Free tier; zero-config React/Vite deploy |
 | Hosting (backend) | Railway | $5 free credit/month for FastAPI; simple env var management |
 
@@ -66,10 +71,35 @@ LINKEDIN_CLIENT_ID=         # https://developer.linkedin.com
 LINKEDIN_CLIENT_SECRET=     # LinkedIn Developer App secret
 LINKEDIN_REDIRECT_URI=      # e.g. http://localhost:8000/v1/auth/linkedin/callback
 
+# Xano (M18+) — becomes the system of record
+XANO_BASE_URL=              # Xano API group base URL
+SIDECAR_SHARED_SECRET=      # X-Sidecar-Key; Xano -> FastAPI sidecar auth
+
+# Hackathon vendor APIs (M19). Mock-first: unset keys still run the full pipeline.
+VENDOR_MODE=mock            # mock | live (global default)
+NUTRIENT_MODE=              # per-vendor override of VENDOR_MODE
+DOCTAVIAN_MODE=
+SERPAPI_MODE=
+FOXIT_MODE=
+CONFIDENCE_THRESHOLD=0.85   # below this, an extracted field goes to human review
+NUTRIENT_DWS_API_KEY=       # https://nutrient.io  (extraction + Viewer)
+DOCTAVIAN_API_KEY=          # document generation API
+SERPAPI_API_KEY=            # https://serpapi.com
+FOXIT_PDF_SERVICES_KEY=     # PDF Services API (via their open-source MCP server)
+FOXIT_ESIGN_API_KEY=        # eSign — separate credentials, called directly by the agent
+FOXIT_WEBHOOK_SECRET=       # HMAC verification for POST /v1/webhooks/foxit
+
 # Frontend (.env.local)
-VITE_API_BASE_URL=          # http://localhost:8000 in dev; backend URL in prod
-VITE_NEON_AUTH_URL=         # Neon Auth service URL for the Vite client
+VITE_API_BASE_URL=          # Xano API group base URL
+VITE_SIDECAR_BASE_URL=      # FastAPI sidecar — SSE chat + document agent
+VITE_XANO_AUTH_URL=         # Xano auth endpoint for the Vite client
+VITE_NUTRIENT_VIEWER_KEY=   # DWS Viewer client key for the review surface
 ```
+
+> **Hackathon context:** this project is being submitted to the DevNetwork [API + Cloud + AI]
+> Hackathon 2026 (deadline **3 Sep 2026, 10:00am PDT**) across five tracks — Xano, Nutrient, Foxit,
+> Doctavian, and SerpApi. Milestones 18–21 are the submission; M22 finishes the migration afterwards.
+> Full plan and track compliance matrix: `docs/xano-document-pipeline-plan.md`.
 
 ---
 
@@ -292,6 +322,115 @@ Tasks:
 - [x] API error states: ProfileForm, PlanPanel, PreArrivalPage, ChatPage all surface errors via Banner or inline error div; graph-source errors surface through plan/profile API error paths
 - [x] Add verification disclaimer to all entity cards (NodeDetailCard) and PlanPanel timeline — Done when: disclaimer text is visible on every card
 - [ ] Accessibility deep audit — tab-key navigation through 3-step form and dashboard (ARIA labels added; full keyboard flow test pending manual verification)
+
+---
+
+### Milestone 18: Xano Foundation — Auth & Demo-Path State
+**Goal:** Xano owns auth and the state the hackathon demo path touches. Deliberately reduced scope — the other 8 tables stay on Neon until after the deadline.
+
+Full spec: `docs/xano-document-pipeline-plan.md` §2. **Deadline: 3 Sep 2026, 10:00am PDT.**
+
+Tasks:
+- [x] Confirm pre-existing project work is permitted — **allowed**; still frame write-ups around 17 Aug–3 Sep work and keep commits scoped `feat(m18)`…`feat(m21)`
+- [ ] **Day 1:** request credentials — Nutrient DWS, Doctavian, SerpApi, and Foxit **twice** (PDF Services `client_id`/`client_secret` **and** eSign OAuth2 — they are separate systems, §2.2) — Done when: all five requests are submitted
+- [ ] **Day 1 spike:** import the Doctavian Postman collection and pin real endpoint paths + request bodies — Done when: the mock fixture matches the real shape (this is the least-verified vendor in the plan)
+- [x] Determine whether "Xano Agent" is a runtime agent or a dev assistant — **it is both.** The dev assistant builds your backend; **Xano Agents** are runtime LLM entities invoked via `Call AI Agent`, with Custom Functions / APIs / DB / **remote MCP tools** as tools, OpenAI + Anthropic + free Gemini credits, and a run/step/tool-call dashboard. The document agent now runs *in Xano* (§2.3, §6.2)
+- [ ] **Day 1 spike:** confirm which Xano plan tier includes Agents and whether run limits apply — Done when: answered; the sidecar agent is the fallback and the decision deadline is 27 Aug
+- [ ] **Day 1, blocking:** confirm the Xano tier — background tasks are tier-gated and the free plan is rate-limited; pick fallback A (synchronous extraction) if unavailable — Done when: the extraction execution model is decided before any function stack is written (`docs/xano-document-pipeline-plan.md` §2.4)
+- [ ] Create Xano workspace + env vars (`VENDOR_MODE`, `CONFIDENCE_THRESHOLD`, per-vendor mode + key vars) — Done when: `GET /v1/auth/me` returns 401 unauthenticated
+- [ ] `xano pull` the workspace as **XanoScript** into `xano/` and commit it — Done when: the backend diffs in PRs like any other code (XanoScript went GA and the CLI ships Git integration in Q2 2026, so the old "no-code isn't reviewable" problem is gone)
+- [ ] Port 4 tables only — `user_profiles`→`user`, `user_documents`, `plan_progress`, `notifications` — Done when: schema parity confirmed, `set_updated_at` replaced by explicit `updated_at` writes in every edit stack
+- [ ] Add `role` (`student`|`advisor`) to `user` — Done when: the advisor queue in M20 can gate on it
+- [ ] Rebuild `/v1/auth/{signup,login,me,me/stage}` on Xano auth at byte-for-byte parity — Done when: `AuthContext.jsx` logs in unchanged apart from the `xanoAuth.js` import
+- [ ] Port the documents, progress, and notifications API groups keeping existing `/v1` paths and shapes — Done when: each response validates against its model in `backend/app/models/schemas.py`
+- [ ] Apply auth requirement per `PUBLIC_V1_PREFIXES` in `backend/app/auth.py:33` — Done when: public paths stay public, all others 401 without a token
+- [ ] `X-Sidecar-Key` shared-secret middleware on FastAPI + 5-min Xano-minted token for SSE/agent — Done when: the sidecar rejects unsigned calls
+- [ ] `scripts/migrate_neon_to_xano.py` — idempotent, FK-ordered, row-count parity assertions — Done when: parity passes on a dev workspace
+- [ ] **Cut:** LinkedIn OAuth rebuild — already blocked on LinkedIn review (M6), zero demo value
+
+---
+
+### Milestone 19: Document Pipeline — Agent, Extraction, Gate, Generation, Signature
+**Goal:** A plain prompt ends in a signed, correct document, with a human gate wherever the model isn't sure. This is the hackathon submission.
+
+Full spec: `docs/xano-document-pipeline-plan.md` §3. Scope: I-20 only, one form output. Track compliance matrix: §1.
+
+Tasks:
+- [ ] Create the 9 pipeline tables + `vendor_fixtures` — Done when: `document_uploads` … `pipeline_events` and `agent_runs` exist with FKs to `user`
+- [ ] Seed 3 Nutrient fixtures: all-high-confidence, mixed (2–3 below threshold), hard failure — Done when: mock mode returns each on demand
+- [ ] `vendor_nutrient_extract` / `vendor_doctavian_generate` / `vendor_serpapi_lookup` / `vendor_foxit_send` with `mock`/`live` branch — Done when: no function stack calls a vendor URL directly
+- [ ] Define the I-20 JSON Schema for Nutrient `/extract` — Done when: 12 fields come back with confidence, match label, page, bbox, and source citation
+- [ ] `POST /v1/documents/upload` + extraction writing `extracted_fields` — Done when: 12 I-20 fields land with confidences (**Nutrient track: core operation 1**)
+- [ ] `apply_confidence_threshold` — below 0.85 **and** always-review keys (`sevis_id`, `program_end_date`, `funding_amount`) → `needs_review` — Done when: the mixed fixture yields ≥2 review items. Nutrient documents its confidence as *uncalibrated*, so the always-review rule is their recommendation, not our opinion — quote that in the write-up and never present the threshold as a probability. Post-July-2026 `program_end_date` *is* the admission period, making it the highest-stakes field on the I-20
+- [ ] Review endpoints writing a `field_reviews` row on every action — Done when: no correction is possible without an audit row
+- [ ] Server-side gate: generation rejected while any field is `needs_review` — Done when: the contract test asserts the rejection
+- [ ] `resolve_form_variant` — 4 variants on visa status × funding source; school drives header substitution — Done when: each branch returns its variant
+- [ ] `POST /v1/documents/{id}/generate` freezing `field_snapshot`, calling the **Doctavian generation API** — Done when: later corrections don't alter a generated form (**Doctavian track**)
+- [ ] Foxit **PDF Services** packet assembly — register their open-source MCP server as **remote MCP tools on the Xano Agent**; convert, merge with the source I-20 page, stamp audit ID + "verified as of", flatten — Done when: ≥4 tools are used and the packet can't be edited before signing (**Foxit track, req 2**)
+- [ ] Build the document agent as a **Xano Agent** — 8 tools (6 Custom Functions + Foxit PDF Services as remote MCP tools + an eSign Custom Function), invoked from `POST /v1/agent/documents` via `Call AI Agent`, runs recorded in `agent_runs` — Done when: a plain prompt drives the pipeline end to end (**Foxit track req 1**, and it upgrades the **Xano** claim from "database with endpoints" to "the agent is a Xano Agent")
+- [ ] **27 Aug decision point:** Xano Agents usable on our tier, or fall back to `backend/app/agents/document_agent.py` in the sidecar — Done when: decided; after this date the switch costs more than it saves
+- [ ] Agent **cannot self-approve** — `generate_form` hard-errors while fields are `needs_review`, so the agent calls `request_human_review` and stops — Done when: the refusal is visible in the agent trace (this is the Foxit demo's opening shot)
+- [ ] SerpApi: 3 lookups via the **AI Overviews endpoint with citation extraction** — processing time, school ISSS requirements, and **recent policy changes that force a field back to review** — Done when: live search data measurably changes agent behaviour, not just page copy (**SerpApi track**). Anchor the demo to the **16 July 2026 DHS rule** that ended Duration of Status and halved the OPT grace period: every template written before that date generates a wrong document today
+- [ ] `send_for_signature` calling **Foxit eSign directly** — OAuth2 `client_credentials` against `na1.foxitesign.foxit.com/api/oauth2/access_token`, credentials separate from PDF Services — Done when: a real person signs (**Foxit track, req 3**). eSign sits *outside* the MCP server, which is exactly why the track requires the agent to call it directly — say so in the write-up
+- [ ] HMAC-verified `POST /v1/webhooks/foxit` + `FOXIT_MODE=mock` simulate endpoint — Done when: `signed` flips `user_documents.status` to `done` and creates a notification
+- [ ] `backend/tests/test_pipeline_contract.py` driving the full mock flow incl. the rejected generate — Done when: it passes with zero vendor keys set
+- [ ] Switch every vendor to `live` and re-run — Done when: each track has at least one real API call in the recording
+
+---
+
+### Milestone 20: Frontend — Student Pipeline & Advisor Queue
+**Goal:** The pipeline is usable, the confidence step is visible, and the advisor side proves this is a SaaS rebuild rather than a student toy.
+
+Full spec: `docs/xano-document-pipeline-plan.md` §4.
+
+Tasks:
+- [ ] Point `client.js` at Xano; second axios instance for routes still on FastAPI; `VITE_SIDECAR_BASE_URL` for SSE/agent — Done when: all 10 existing pages work untouched
+- [ ] `frontend/src/auth/xanoAuth.js` replacing `neonAuth.js` at the same interface — Done when: `AuthContext.jsx` changes only its import
+- [ ] `DocumentsPage.jsx` + `/documents` route + `PipelineStepper.jsx` — Done when: the five stages render with the current one lit
+- [ ] `DocumentUpload.jsx` with progress and doc-type select — Done when: an upload creates a `document_uploads` row
+- [ ] `ExtractionResults.jsx` using the **Nutrient DWS Viewer** to render the real I-20 with confidence overlays; show confidence for accepted fields too — Done when: the trust layer is visible at a glance (**Nutrient track: core operation 2**)
+- [ ] `AgentConsole.jsx` — plain-prompt box + agent trace naming each tool call, **polling `agent_runs` at 1s** (Xano Agents don't document streaming; polling is the proven pattern here) — Done when: the refusal-to-sign moment is legible on screen
+- [ ] `FormPreview.jsx` showing the resolved variant, its branch inputs, and SerpApi sources — Done when: the branch decision is legible without explanation
+- [ ] `SignatureStatus.jsx` with status polling and signed-packet download — Done when: the signed file downloads
+- [ ] `AdvisorQueuePage.jsx` at `/advisor` — review queue, reviewer attribution, per-submission audit trail, and an auto-accepted vs. escalated "time saved" counter — Done when: the Terra Dotta comparison is numeric on screen
+- [ ] Link `/documents` from `DocumentTracker.jsx` on the SSN item — Done when: it offers "Start document flow →"
+
+---
+
+### Milestone 21: Submission Package
+**Goal:** Five submissions, two videos, a repo a judge can actually run. Budget two full days — this is the most under-budgeted work in any hackathon.
+
+Full spec: `docs/xano-document-pipeline-plan.md` §5. **Submit before 3 Sep, 10:00am PDT.**
+
+Tasks:
+- [ ] Storyboard both videos (1 Sep) — Done when: shot lists exist for each
+- [ ] Main demo video, **2–4 min**, recorded in `live` mode — ISSS problem → upload → confidence in the Viewer → advisor reviews 3 escalated fields → SerpApi flags a policy change → branch resolves → packet assembled → signed
+- [ ] Foxit demo video, **1–3 min** (shorter than the others) — plain prompt → agent refuses to generate → human reviews → PDF Services assembles → eSign → person signs
+- [ ] `docs/hackathon-submission.md` with per-track write-ups — Done when: each track's specific ask is answered
+- [ ] Xano **build story**: software replaced (Terra Dotta/Sunapsis, 700+ universities), why, AI tools used, build duration, what would have taken significantly longer without AI + Xano — Done when: explicitly written, it's a stated requirement. The honest answer is XanoScript + Xano CLI + Claude Code
+- [ ] Lead every write-up with the market case — the 16 July 2026 D/S rule, OPT grace 60→30 days, 6–10 month I-765 delays, and a $17.7B SIS market growing 14.6% — Done when: **Concept** and **Feasibility** are argued with dates and numbers, not adjectives
+- [ ] Nutrient's required one-liner on where DWS does the heavy lifting and why — Done when: written
+- [ ] Foxit: defend the agent/human boundary and the Xano-vs-"agent calls eSign directly" tension — Done when: the choice is argued, not glossed
+- [ ] SerpApi: show how live data changed agent behaviour, not just page content — Done when: lookup 3 is the centrepiece
+- [ ] Public repo, `.env.example` for every new key, README quickstart **verified from a clean clone** — Done when: a fresh clone runs in mock mode with no vendor keys
+- [ ] Update `docs/demo-runbook.md`; confirm no credentials or real student documents are committed
+
+---
+
+### Milestone 22: Decommission the FastAPI State Layer (post-deadline)
+**Goal:** Finish the migration properly once the submission is in. Zero judging value before 3 Sep — deliberately deferred.
+
+Full spec: `docs/xano-document-pipeline-plan.md` §0.2, §0.3.
+
+Tasks:
+- [ ] Port the remaining 8 tables — `chat_messages`, `connections`, `content_items`, `saved_content`, `mentor_profiles`, `mentor_ratings`, `social_requests`, `app_sessions`
+- [ ] Delete routers `auth, documents, progress, social, mentor, notifications, feed, profile, pre_arrival`; keep `graph, plan, bridge, chat` and the agent — Done when: `main.py` includes only those
+- [ ] Delete `app/db/{postgres,repositories,migrate}.py`, `backend/migrations/`, `app/auth.py` — Done when: no `asyncpg` import remains
+- [ ] Strip `database_url*`, `neon_auth_*`, `stack_*`, `supabase_*`, `auth_required` from `config.py`; add `sidecar_shared_secret`, `xano_base_url` — Done when: the app boots with neither Neon nor auth vars
+- [ ] Collapse the frontend's two axios instances back to one — Done when: only `VITE_API_BASE_URL` + `VITE_SIDECAR_BASE_URL` remain
+- [ ] `backend/tests/test_xano_contract.py`, skipped without `XANO_TEST_BASE_URL` — Done when: CI is green with no secrets
+- [ ] Update `render.yaml`, `README.md`, `docs/{DEPLOYMENT,architecture,api-spec,data-model}.md`, and Notes & Decisions — Done when: no doc still describes Neon as the system of record
+- [ ] Remove `@neondatabase/neon-js` from `frontend/package.json` — Done when: the build passes without it
 
 ---
 

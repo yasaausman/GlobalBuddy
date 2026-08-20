@@ -169,4 +169,4 @@ Optional: set `VITE_NEON_AUTH_URL` when Neon Auth is enabled and `VITE_API_TIMEO
 - [Agents spec](./docs/agents-spec.md)
 - [Prompt spec](./docs/prompt-spec.md)
 - [Demo runbook](./docs/demo-runbook.md)
-- [Implementation plan](./docs/implementation-plan.md)
+- [Hackathon build plan — ISSS document pipeline on Xano](./docs/xano-document-pipeline-plan.md)
