@@ -33,6 +33,14 @@ query "documents/sign" verb=POST {
       error = "Source upload not found."
     }
 
+    // The uploaded doc is the I-20 (input); the pipeline OUTPUT is the SSN
+    // support packet, so signing completes the "ssn" checklist item in
+    // DocumentTracker.jsx -- NOT the "i20" upload's own doc_type. v1 is
+    // I-20-only / one-form-output, so this is a fixed "ssn" (plan §6.5, §6.7).
+    var $completed_doc_type {
+      value = "ssn"
+    }
+
     function.run "Vendor/foxit_send" {
       input = {
         user_id            : $auth.id
@@ -42,7 +50,7 @@ query "documents/sign" verb=POST {
     } as $signature
 
     db.query user_documents {
-      where = $db.user_documents.user_id == $auth.id && $db.user_documents.doc_type == $upload.doc_type
+      where = $db.user_documents.user_id == $auth.id && $db.user_documents.doc_type == $completed_doc_type
       return = {type: "single"}
     } as $existing_doc
 
@@ -55,7 +63,7 @@ query "documents/sign" verb=POST {
         db.add user_documents {
           data = {
             user_id    : $auth.id
-            doc_type   : $upload.doc_type
+            doc_type   : $completed_doc_type
             status     : "done"
             updated_at : "now"
           }
@@ -78,7 +86,7 @@ query "documents/sign" verb=POST {
         user_id : $auth.id
         type    : "document_signed"
         title   : "Your document has been signed"
-        body    : $upload.doc_type ~ " support packet was signed and is ready to download."
+        body    : $completed_doc_type ~ " support packet was signed and is ready to download."
       }
     } as $notif
 
@@ -89,7 +97,7 @@ query "documents/sign" verb=POST {
         subject_id  : "" ~ $signature.id
         event       : "signed"
         actor       : "system"
-        payload     : {form_generation_id: $form.id, doc_type: $upload.doc_type}
+        payload     : {form_generation_id: $form.id, doc_type: $completed_doc_type}
       }
     } as $event
   }
@@ -97,7 +105,7 @@ query "documents/sign" verb=POST {
   response = {
     signature_id     : $signature.id
     status            : $signature.status
-    doc_type          : $upload.doc_type
+    doc_type          : $completed_doc_type
     document_status   : $doc.status
   }
   tags = ["m19"]
