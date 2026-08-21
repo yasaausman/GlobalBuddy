@@ -332,21 +332,22 @@ Full spec: `docs/xano-document-pipeline-plan.md` §2. **Deadline: 3 Sep 2026, 10
 
 Tasks:
 - [x] Confirm pre-existing project work is permitted — **allowed**; still frame write-ups around 17 Aug–3 Sep work and keep commits scoped `feat(m18)`…`feat(m21)`
-- [ ] **Day 1:** request credentials — Nutrient DWS, Doctavian, SerpApi, and Foxit **twice** (PDF Services `client_id`/`client_secret` **and** eSign OAuth2 — they are separate systems, §2.2) — Done when: all five requests are submitted
+- [x] **Day 1:** request credentials — Nutrient DWS, Doctavian, SerpApi confirmed working; Foxit (both PDF Services and eSign) and Doctavian company-account access still pending vendor email replies
 - [ ] **Day 1 spike:** import the Doctavian Postman collection and pin real endpoint paths + request bodies — Done when: the mock fixture matches the real shape (this is the least-verified vendor in the plan)
 - [x] Determine whether "Xano Agent" is a runtime agent or a dev assistant — **it is both.** The dev assistant builds your backend; **Xano Agents** are runtime LLM entities invoked via `Call AI Agent`, with Custom Functions / APIs / DB / **remote MCP tools** as tools, OpenAI + Anthropic + free Gemini credits, and a run/step/tool-call dashboard. The document agent now runs *in Xano* (§2.3, §6.2)
-- [ ] **Day 1 spike:** confirm which Xano plan tier includes Agents and whether run limits apply — Done when: answered; the sidecar agent is the fallback and the decision deadline is 27 Aug
-- [ ] **Day 1, blocking:** confirm the Xano tier — background tasks are tier-gated and the free plan is rate-limited; pick fallback A (synchronous extraction) if unavailable — Done when: the extraction execution model is decided before any function stack is written (`docs/xano-document-pipeline-plan.md` §2.4)
-- [ ] Create Xano workspace + env vars (`VENDOR_MODE`, `CONFIDENCE_THRESHOLD`, per-vendor mode + key vars) — Done when: `GET /v1/auth/me` returns 401 unauthenticated
-- [ ] `xano pull` the workspace as **XanoScript** into `xano/` and commit it — Done when: the backend diffs in PRs like any other code (XanoScript went GA and the CLI ships Git integration in Q2 2026, so the old "no-code isn't reviewable" problem is gone)
-- [ ] Port 4 tables only — `user_profiles`→`user`, `user_documents`, `plan_progress`, `notifications` — Done when: schema parity confirmed, `set_updated_at` replaced by explicit `updated_at` writes in every edit stack
-- [ ] Add `role` (`student`|`advisor`) to `user` — Done when: the advisor queue in M20 can gate on it
-- [ ] Rebuild `/v1/auth/{signup,login,me,me/stage}` on Xano auth at byte-for-byte parity — Done when: `AuthContext.jsx` logs in unchanged apart from the `xanoAuth.js` import
-- [ ] Port the documents, progress, and notifications API groups keeping existing `/v1` paths and shapes — Done when: each response validates against its model in `backend/app/models/schemas.py`
-- [ ] Apply auth requirement per `PUBLIC_V1_PREFIXES` in `backend/app/auth.py:33` — Done when: public paths stay public, all others 401 without a token
-- [ ] `X-Sidecar-Key` shared-secret middleware on FastAPI + 5-min Xano-minted token for SSE/agent — Done when: the sidecar rejects unsigned calls
-- [ ] `scripts/migrate_neon_to_xano.py` — idempotent, FK-ordered, row-count parity assertions — Done when: parity passes on a dev workspace
-- [ ] **Cut:** LinkedIn OAuth rebuild — already blocked on LinkedIn review (M6), zero demo value
+- [x] **Day 1 spike:** confirm which Xano plan tier includes Agents and whether run limits apply — **Essential plan confirmed**: both Agents and Background Tasks are available; no fallback needed
+- [x] **Day 1, blocking:** confirm the Xano tier — **Essential**, background tasks available, synchronous-extraction fallback not needed
+- [x] Create Xano workspace + env vars (`VENDOR_MODE`, `CONFIDENCE_THRESHOLD`, per-vendor mode + key vars) — Done when: `GET /v1/auth/me` returns 401 unauthenticated — **verified live via curl: 401 confirmed**
+- [x] `xano pull` the workspace as **XanoScript** into `xano/` and commit it — Done when: the backend diffs in PRs like any other code
+- [x] Port 4 tables only — `user_profiles`→`user`, `user_documents`, `plan_progress`, `notifications` — schema verified live in the Xano dashboard, all fields present and correctly typed
+- [x] Add `role` (`student`|`advisor`) to `user` — Done when: the advisor queue in M20 can gate on it
+- [x] Rebuild `/v1/auth/{signup,login,me,me/stage}` on Xano auth — **verified live via curl**: signup returns `{token, user}` matching `xanoAuth.js`'s contract exactly; `auth/me` returns the flat profile; stage-advance (newcomer→settler) succeeds; stage-regression attempt (settler→newcomer) correctly no-ops, matching `advance_user_stage`'s forward-only guard
+- [x] Port the documents, progress, and notifications API groups — **verified live via curl**, with one required deviation: see "Path parameters don't work" below
+- [x] Apply auth requirement per `PUBLIC_V1_PREFIXES` in `backend/app/auth.py:33` — **verified live**: unauthenticated `auth/me` call correctly returns 401
+- [ ] `X-Sidecar-Key` shared-secret middleware on FastAPI + 5-min Xano-minted token for SSE/agent — FastAPI side already built (`backend/app/sidecar_auth.py`); Xano side not yet wired
+- [ ] `scripts/migrate_neon_to_xano.py` — idempotent, FK-ordered, row-count parity assertions — script written, not yet run (no Neon data to migrate yet)
+- [x] **Cut:** LinkedIn OAuth rebuild — already blocked on LinkedIn review (M6), zero demo value
+- [x] **Discovered and fixed:** path-parameter routes (`/documents/{doc_type}` etc.) are confirmed broken on this Xano workspace/tier — every path-param endpoint 404s at request time despite parsing, pushing, and appearing correctly in Swagger, even for a 100%-UI-generated test case. Worked around by moving all identifiers into the request body instead of the URL path. **Binding rule for M19/M20: no path parameters, ever** — see `docs/xano-document-pipeline-plan.md` §5.5 for the full writeup and the endpoint rewrite table
 
 ---
 

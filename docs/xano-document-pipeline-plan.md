@@ -331,17 +331,43 @@ limits paid tiers drop. §6.3's async extraction assumes they exist. If unavaila
 - **Fallback B:** the sidecar extracts via `nutrient-dws-client-python` and POSTs results to Xano.
   Slightly weakens the "Xano owns the workflow" claim; use only if A fails.
 
-### 5.5 Tasks
+### 5.5 CONFIRMED PLATFORM CONSTRAINT: path-parameter routes don't resolve
 
-- [ ] **Day 1:** request Nutrient, Doctavian, SerpApi, Foxit (PDF Services **and** eSign — separate) credentials
-- [ ] **Day 1:** confirm Xano tier; decide sync vs. background extraction
+⚠️ **Discovered building M18, at real cost — read this before writing any endpoint with a `{param}`
+in its path.** Path-parameter routes (e.g. `PUT /documents/{doc_type}`) parse and push without error,
+appear correctly in Swagger with full docs, and are listed as registered endpoints — but every request
+to them returns a 404 (`"Unable to locate request."`) from the live API gateway.
+
+Isolated conclusively with a **100% UI-generated, UI-saved** test endpoint (`GET /test/{id}`, never
+touched by CLI or hand-written code) that reproduced the identical 404. Two independent fix attempts
+failed: removing a suspected stray leading slash (cleared an unrelated editor lint warning, not the
+404), and a full re-save through the dashboard UI. This is a platform-level gap on this workspace/tier,
+not a XanoScript syntax mistake.
+
+**Binding design rule for M19/M20 and every future Xano endpoint: no path parameters, ever.** Every
+identifier goes in the request body (POST/PUT/PATCH) or a query string parameter (GET/DELETE) instead.
+The endpoint table in §6.9 is written with this rule already applied — do not add `{param}` paths back
+without re-running the `/test/{id}` reproduction first, even if a plan/tier change seems to fix it.
+
+Concretely, in M18 this meant rewriting:
+
+| Broken (path param) | Working (body param) |
+|---|---|
+| `PUT /documents/{doc_type}` | `PUT /documents` with `doc_type` in the body |
+| `PUT /progress/plan/{task_id}` | `PUT /progress/plan` with `task_id` in the body |
+| `POST /notifications/{notification_id}/read` | `POST /notifications/read` with `notification_id` in the body |
+
+### 5.6 Tasks
+
+- [x] **Day 1:** request Nutrient, Doctavian, SerpApi, Foxit (PDF Services **and** eSign — separate) credentials
+- [x] **Day 1:** confirm Xano tier; decide sync vs. background extraction — Essential plan, both Agents and Background Tasks confirmed available
 - [ ] **Day 1:** import the Doctavian Postman collection; pin real endpoint shapes (§2.4)
-- [ ] **Day 1:** determine whether "Xano Agent" is a runtime tool-calling agent (§2.3)
-- [ ] Xano workspace + env vars; `xano pull` into `xano/`, committed
-- [ ] Port the 4 tables; add `role`; explicit `updated_at` in every edit stack
-- [ ] `/v1/auth/{signup,login,me,me/stage}` at byte-for-byte parity
-- [ ] Port documents, progress, notifications API groups
-- [ ] Auth requirement per `PUBLIC_V1_PREFIXES` (`backend/app/auth.py:33`)
+- [x] **Day 1:** determine whether "Xano Agent" is a runtime tool-calling agent (§2.3) — confirmed: it's both a dev assistant and a runtime feature
+- [x] Xano workspace + env vars; `xano pull` into `xano/`, committed
+- [x] Port the 4 tables; add `role`; explicit `updated_at` in every edit stack
+- [x] `/v1/auth/{signup,login,me,me/stage}` at byte-for-byte parity — verified live via curl: signup, me, forward stage-advance, and backward-stage rejection all confirmed correct
+- [x] Port documents, progress, notifications API groups — verified live via curl, using the body-param rewrite from §5.5
+- [x] Auth requirement per `PUBLIC_V1_PREFIXES` (`backend/app/auth.py:33`) — confirmed: unauthenticated `auth/me` correctly returns 401
 - [ ] `X-Sidecar-Key` middleware + 5-min Xano-minted token for SSE/agent
 - [ ] `scripts/migrate_neon_to_xano.py` with row-count parity assertions
 
@@ -522,18 +548,21 @@ Seed three Nutrient scenarios: all-high-confidence, **mixed (2–3 below thresho
 The mixed one is the demo.
 
 > Mock mode protects the schedule, but **every track needs one real call.** Keys were requested day 1
-> (§5.5); switch to `live` and re-record before submitting.
+> (§5.6); switch to `live` and re-record before submitting.
 
 ### 6.9 Endpoints
 
+⚠️ **No path parameters** — every identifier is a body field (POST/PUT/PATCH) or query string param
+(GET/DELETE), per the confirmed platform constraint in §5.5.
+
 ```
-POST   /v1/documents/upload                     GET  /v1/forms/{form_id}
-GET    /v1/documents/{upload_id}                POST /v1/forms/{form_id}/policy-check
-GET    /v1/documents/{upload_id}/extraction     POST /v1/forms/{form_id}/sign
-GET    /v1/documents/{upload_id}/review         GET  /v1/forms/{form_id}/signature
-POST   /v1/documents/fields/{field_id}/review   GET  /v1/documents/{upload_id}/audit
-POST   /v1/documents/{upload_id}/generate       GET  /v1/advisor/queue          (role=advisor)
-POST   /v1/webhooks/foxit   (public, HMAC)      POST /v1/agent/documents        (sidecar, SSE)
+POST   /v1/documents/upload                            GET  /v1/forms                        ?form_id=
+GET    /v1/documents                                    ?upload_id=            POST /v1/forms/policy-check          {form_id, ...}
+GET    /v1/documents/extraction                         ?upload_id=            POST /v1/forms/sign                  {form_id, ...}
+GET    /v1/documents/review                              ?upload_id=            GET  /v1/forms/signature              ?form_id=
+POST   /v1/documents/fields/review                       {field_id, ...}        GET  /v1/documents/audit              ?upload_id=
+POST   /v1/documents/generate                             {upload_id}            GET  /v1/advisor/queue                (role=advisor)
+POST   /v1/webhooks/foxit   (public, HMAC, no path param)                      POST /v1/agent/documents              (sidecar, SSE)
 ```
 
 ---
