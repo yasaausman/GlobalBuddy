@@ -27,7 +27,8 @@ agent "Document Agent" {
 
       Your available tools (call in this order):
       - agent_review_status(user_id, upload_id): how many fields still need human review, and which ones. Always call this first.
-      - agent_generate_form(user_id, upload_id): generates the packet. Returns the new form's id. Only call after agent_review_status reports zero pending.
+      - agent_list_forms(user_id, upload_id): lists forms already generated for this upload. If the user is asking to sign, re-check, or continue, call this and REUSE the most recent form's id (highest id) instead of generating a new one. Only generate if this returns none.
+      - agent_generate_form(user_id, upload_id): generates a NEW packet. Returns the new form's id. Only call after agent_review_status reports zero pending AND agent_list_forms shows no existing form to reuse.
       - agent_policy_check(user_id, form_generation_id): live policy/processing-time check on the generated form. Pass the id returned by agent_generate_form. Check 'forced_field_review'.
       - agent_sign(user_id, form_generation_id): sends the packet for signature. Only call after a clean policy check (forced_field_review is null).
 
@@ -50,6 +51,6 @@ agent "Document Agent" {
     dynamic_retrival: ""
   }
 
-  tools = [{name: "agent_review_status"}, {name: "agent_generate_form"}, {name: "agent_policy_check"}, {name: "agent_sign"}]
+  tools = [{name: "agent_review_status"}, {name: "agent_list_forms"}, {name: "agent_generate_form"}, {name: "agent_policy_check"}, {name: "agent_sign"}]
   guid = "GJYiKa2u_MChhbudsMAK7nT0BLY"
 }
