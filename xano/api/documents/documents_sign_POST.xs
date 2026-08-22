@@ -1,113 +1,22 @@
-// M19 §6.7: send a generated form for signature (mock mode: signs instantly)
-// and close the loop into the existing document tracker -- sets
-// user_documents.status="done" for the upload's doc_type, matching
-// frontend/src/components/DocumentTracker.jsx with zero client change.
-// Also creates a notification, reusing the M14 bell unchanged.
+// M19 §6.7: thin endpoint wrapper over the shared Pipeline/sign function.
+// signer_email is no longer required -- Pipeline/sign derives it from the
+// authed user's record. All sign logic lives in the function so the agent's
+// agent_sign tool and this endpoint can't diverge.
 query "documents/sign" verb=POST {
   api_group = "Documents"
   auth = "user"
 
   input {
     int form_generation_id
-    text signer_email filters=trim
   }
 
   stack {
-    db.query form_generations {
-      where = $db.form_generations.id == $input.form_generation_id && $db.form_generations.user_id == $auth.id
-      return = {type: "single"}
-    } as $form
-
-    precondition ($form != null) {
-      error_type = "notfound"
-      error = "Form generation not found."
-    }
-
-    db.query document_uploads {
-      where = $db.document_uploads.id == $form.upload_id && $db.document_uploads.user_id == $auth.id
-      return = {type: "single"}
-    } as $upload
-
-    precondition ($upload != null) {
-      error_type = "notfound"
-      error = "Source upload not found."
-    }
-
-    // The uploaded doc is the I-20 (input); the pipeline OUTPUT is the SSN
-    // support packet, so signing completes the "ssn" checklist item in
-    // DocumentTracker.jsx -- NOT the "i20" upload's own doc_type. v1 is
-    // I-20-only / one-form-output, so this is a fixed "ssn" (plan §6.5, §6.7).
-    var $completed_doc_type {
-      value = "ssn"
-    }
-
-    function.run "Vendor/foxit_send" {
-      input = {
-        user_id            : $auth.id
-        form_generation_id : $form.id
-        signer_email       : $input.signer_email
-      }
-    } as $signature
-
-    db.query user_documents {
-      where = $db.user_documents.user_id == $auth.id && $db.user_documents.doc_type == $completed_doc_type
-      return = {type: "single"}
-    } as $existing_doc
-
-    var $doc {
-      value = null
-    }
-
-    conditional {
-      if ($existing_doc == null) {
-        db.add user_documents {
-          data = {
-            user_id    : $auth.id
-            doc_type   : $completed_doc_type
-            status     : "done"
-            updated_at : "now"
-          }
-        } as $doc
-      }
-    }
-
-    conditional {
-      if ($existing_doc != null) {
-        db.edit user_documents {
-          field_name  = "id"
-          field_value = $existing_doc.id
-          data = {status: "done", updated_at: "now"}
-        } as $doc
-      }
-    }
-
-    db.add notifications {
-      data = {
-        user_id : $auth.id
-        type    : "document_signed"
-        title   : "Your document has been signed"
-        body    : $completed_doc_type ~ " support packet was signed and is ready to download."
-      }
-    } as $notif
-
-    db.add pipeline_events {
-      data = {
-        user_id     : $auth.id
-        subject_type: "signature_request"
-        subject_id  : "" ~ $signature.id
-        event       : "signed"
-        actor       : "system"
-        payload     : {form_generation_id: $form.id, doc_type: $completed_doc_type}
-      }
-    } as $event
+    function.run "Pipeline/sign" {
+      input = {user_id: $auth.id, form_generation_id: $input.form_generation_id}
+    } as $result
   }
 
-  response = {
-    signature_id     : $signature.id
-    status            : $signature.status
-    doc_type          : $completed_doc_type
-    document_status   : $doc.status
-  }
+  response = $result
   tags = ["m19"]
   guid = "vEsJwbWgJYKUmMddcg51K8tv_XM"
 }
