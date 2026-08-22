@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import client from "../api/client.js";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
@@ -160,6 +161,11 @@ export default function DocumentTracker() {
                       <a href={doc.link} target="_blank" rel="noopener noreferrer" className="gb-doc-link">
                         {doc.linkLabel} ↗
                       </a>
+                    )}
+                    {doc.id === "ssn" && (
+                      <Link to="/documents" className="gb-doc-link" style={{ display: "inline-block", marginTop: "0.4rem" }}>
+                        Start document flow →
+                      </Link>
                     )}
                   </div>
                 )}

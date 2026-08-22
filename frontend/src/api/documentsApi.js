@@ -73,3 +73,16 @@ export async function runAgent({ prompt, uploadId }) {
   const { data } = await xanoDocsApi.post("/documents/agent", { prompt, upload_id: uploadId });
   return data; // { run_id, upload_id, result }
 }
+
+// --- advisor (role=advisor) ---
+export async function advisorQueue() {
+  const { data } = await xanoDocsApi.get("/advisor/queue");
+  return data; // { pending[], stats{ needs_review, auto_accepted, confirmed, corrected } }
+}
+
+export async function advisorReview({ fieldId, action, newValue, note }) {
+  const { data } = await xanoDocsApi.post("/advisor/review", {
+    field_id: fieldId, action, new_value: newValue, note,
+  });
+  return data;
+}

@@ -9,6 +9,7 @@ import {
   submitReview, generateForm, policyCheck, signForm, runAgent,
 } from "../api/documentsApi.js";
 import { getXanoToken } from "../api/xanoClient.js";
+import XanoLoginGate from "../components/XanoLoginGate.jsx";
 
 const STAGES = ["Upload", "Extract", "Review", "Generate", "Policy check", "Sign"];
 
@@ -20,67 +21,6 @@ function confidenceColor(state) {
   if (state === "auto_accepted" || state === "confirmed") return "#1a7f4b";
   if (state === "corrected") return "#2563eb";
   return "#b45309"; // needs_review
-}
-
-// --- Xano login gate ---------------------------------------------------------
-function LoginGate({ onAuthed }) {
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true); setError(null);
-    try {
-      const fn = mode === "login" ? xanoLogin : xanoSignup;
-      const data = await fn({ email, password, fullName });
-      onAuthed(data.user);
-    } catch (err) {
-      setError(errText(err, "Authentication failed."));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="gb-card" style={{ maxWidth: 420, margin: "3rem auto", padding: "2rem" }}>
-      <h2 className="gb-section-title" style={{ marginTop: 0 }}>Document Center</h2>
-      <p style={{ color: "var(--gb-muted)", marginTop: 0 }}>
-        Sign in to upload and process your I-20.
-      </p>
-      {error && <p className="gb-auth-error" role="alert">{error}</p>}
-      <form onSubmit={submit}>
-        {mode === "signup" && (
-          <div className="gb-field">
-            <label>Full name</label>
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-          </div>
-        )}
-        <div className="gb-field">
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div className="gb-field">
-          <label>Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
-        <button type="submit" className="gb-btn gb-btn-primary gb-btn-full" disabled={busy}>
-          {busy ? "…" : mode === "login" ? "Sign in" : "Create account"}
-        </button>
-      </form>
-      <button
-        type="button"
-        className="gb-btn gb-btn-ghost gb-btn-sm"
-        style={{ marginTop: "0.75rem" }}
-        onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); }}
-      >
-        {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
-      </button>
-    </div>
-  );
 }
 
 // --- Stepper -----------------------------------------------------------------
@@ -267,7 +207,7 @@ export default function DocumentsPage() {
     finally { setBusy(false); }
   };
 
-  if (!authed) return <div className="gb-app"><LoginGate onAuthed={() => setAuthed(true)} /></div>;
+  if (!authed) return <div className="gb-app"><XanoLoginGate title="Document Center" blurb="Sign in to upload and process your I-20." onAuthed={() => setAuthed(true)} /></div>;
 
   return (
     <div className="gb-app" style={{ maxWidth: 860, margin: "0 auto", padding: "1.5rem" }}>

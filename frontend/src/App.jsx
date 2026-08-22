@@ -12,6 +12,7 @@ import MentorsPage from "./pages/MentorsPage.jsx";
 import BecomeMentorPage from "./pages/BecomeMentorPage.jsx";
 import PublicProfilePage from "./pages/PublicProfilePage.jsx";
 import DocumentsPage from "./pages/DocumentsPage.jsx";
+import AdvisorQueuePage from "./pages/AdvisorQueuePage.jsx";
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/mentors" element={<MentorsPage />} />
           <Route path="/become-mentor" element={<BecomeMentorPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/advisor" element={<AdvisorQueuePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
