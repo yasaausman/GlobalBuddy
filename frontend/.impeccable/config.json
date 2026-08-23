@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "frontend/src/styles/global.css"
+        ],
+        "createdAt": "2026-08-23T01:53:32.681Z",
+        "reason": "Claude assessed: all layout-transition hits in this file are the onboarding accordion (max-height collapse) and 3 determinate progress-bar fills (transition:width). Both are correct standard techniques; transform/scaleX distorts the gradient and grid-rows left panels un-collapsed. Not real defects."
+      }
+    ]
+  }
+}

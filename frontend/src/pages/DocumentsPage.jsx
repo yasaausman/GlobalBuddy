@@ -17,24 +17,38 @@ function errText(e, fallback) {
   return e?.response?.data?.message || e?.response?.data?.detail || e?.message || fallback;
 }
 
-function confidenceColor(state) {
-  if (state === "auto_accepted" || state === "confirmed") return "#1a7f4b";
-  if (state === "corrected") return "#2563eb";
-  return "#b45309"; // needs_review
+// Maps a field's review state to a palette state class (never color-only:
+// every use is paired with the state's label text).
+function stateClass(state) {
+  if (state === "auto_accepted" || state === "confirmed") return "gb-state-ok";
+  if (state === "corrected") return "gb-state-info";
+  return "gb-state-warn"; // needs_review
 }
+// Resolved token color for the confidence-bar fill.
+function stateVar(state) {
+  if (state === "auto_accepted" || state === "confirmed") return "var(--gb-success)";
+  if (state === "corrected") return "var(--gb-info)";
+  return "var(--gb-warn)";
+}
+
+// --- Icons (16px, 1.5 stroke, currentColor) ---------------------------------
+const iconProps = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
+const CheckIcon = () => (<svg {...iconProps}><path d="M20 6 9 17l-5-5" /></svg>);
+const AlertIcon = () => (<svg {...iconProps}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>);
+const ClockIcon = () => (<svg {...iconProps}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>);
 
 // --- Stepper -----------------------------------------------------------------
 function Stepper({ current }) {
   return (
-    <ol className="gb-doc-stepper" style={{ display: "flex", gap: "0.5rem", listStyle: "none", padding: 0, flexWrap: "wrap" }}>
-      {STAGES.map((s, i) => (
-        <li key={s} style={{
-          padding: "0.35rem 0.7rem", borderRadius: 999, fontSize: "0.8rem",
-          background: i === current ? "var(--gb-accent, #2563eb)" : "var(--gb-surface, #eee)",
-          color: i === current ? "#fff" : "var(--gb-muted)",
-          fontWeight: i === current ? 600 : 400,
-        }}>{i + 1}. {s}</li>
-      ))}
+    <ol className="gb-doc-stepper" aria-label="Document pipeline progress">
+      {STAGES.map((s, i) => {
+        const state = i < current ? "done" : i === current ? "current" : "upcoming";
+        return (
+          <li key={s} data-state={state} aria-current={state === "current" ? "step" : undefined}>
+            <span className="gb-doc-stepper__num">{i + 1}</span>{s}
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -45,23 +59,23 @@ function FieldRow({ field, onReview }) {
   const [val, setVal] = useState(field.value_text || "");
   const pct = Math.round((field.confidence ?? 0) * 100);
   const needs = field.review_state === "needs_review";
-  const color = confidenceColor(field.review_state);
+  const label = field.field_label || field.field_key;
 
   return (
-    <li className="gb-doc-item" style={{ display: "block", padding: "0.6rem 0", borderBottom: "1px solid var(--gb-border, #eee)" }}>
+    <li className="gb-doc-item" style={{ display: "block", padding: "0.6rem 0", borderBottom: "1px solid var(--gb-border)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "baseline" }}>
-        <span className="gb-doc-label" style={{ fontWeight: 600 }}>{field.field_label || field.field_key}</span>
-        <span style={{ fontSize: "0.75rem", color }}>
+        <span className="gb-doc-label" style={{ fontWeight: 600 }}>{label}</span>
+        <span className={stateClass(field.review_state)} style={{ fontSize: "0.75rem", fontWeight: 700 }}>
           {pct}% · {field.match_label || "—"} · {field.review_state.replace("_", " ")}
         </span>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginTop: "0.3rem" }}>
         {editing
-          ? <input value={val} onChange={(e) => setVal(e.target.value)} style={{ flex: 1 }} />
+          ? <input className="gb-input" aria-label={`Correct ${label}`} value={val} onChange={(e) => setVal(e.target.value)} style={{ flex: 1 }} />
           : <span style={{ flex: 1, color: "var(--gb-muted)" }}>{field.value_text}</span>}
-        {/* confidence bar */}
-        <div style={{ width: 90, height: 6, background: "var(--gb-border,#eee)", borderRadius: 3, overflow: "hidden" }}>
-          <div style={{ width: `${pct}%`, height: "100%", background: color }} />
+        {/* confidence meter */}
+        <div className="gb-conf-bar" role="img" aria-label={`${pct}% confidence`}>
+          <span style={{ width: `${pct}%`, background: stateVar(field.review_state) }} />
         </div>
       </div>
       {needs && (
@@ -115,8 +129,11 @@ function AgentConsole({ uploadId }) {
       <p style={{ color: "var(--gb-muted)", marginTop: 0, fontSize: "0.85rem" }}>
         Drive the whole pipeline from a plain instruction. The agent will refuse to generate or sign while fields need review.
       </p>
-      <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={2} style={{ width: "100%" }} />
-      <button className="gb-btn gb-btn-primary gb-btn-sm" style={{ marginTop: "0.5rem" }} onClick={send} disabled={busy}>
+      <label className="gb-field" style={{ marginTop: "0.25rem" }}>
+        <span>Instruction</span>
+        <textarea className="gb-textarea" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={2} />
+      </label>
+      <button className="gb-btn gb-btn-primary gb-btn-sm" style={{ marginTop: "0.6rem" }} onClick={send} disabled={busy}>
         {busy ? "Agent working…" : "Run agent"}
       </button>
       {error && <p className="gb-auth-error" role="alert">{error}</p>}
@@ -127,7 +144,7 @@ function AgentConsole({ uploadId }) {
         </div>
       )}
       {finalMsg && (
-        <div style={{ marginTop: "0.5rem", padding: "0.75rem", background: "var(--gb-surface,#f6f6f6)", borderRadius: 8, whiteSpace: "pre-wrap", fontSize: "0.88rem" }}>
+        <div style={{ marginTop: "0.5rem", padding: "0.75rem", background: "var(--gb-surface)", border: "1px solid var(--gb-border)", borderRadius: "var(--gb-radius-sm)", whiteSpace: "pre-wrap", fontSize: "0.88rem" }}>
           {finalMsg}
         </div>
       )}
@@ -222,10 +239,11 @@ export default function DocumentsPage() {
       {/* Upload */}
       <div className="gb-card" style={{ padding: "1.25rem" }}>
         <h3 className="gb-section-title" style={{ marginTop: 0 }}>1. Upload</h3>
-        <label style={{ fontSize: "0.85rem", color: "var(--gb-muted)" }}>Mock scenario:{" "}
-          <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
-            <option value="mixed">mixed (some low-confidence)</option>
-            <option value="high_confidence">high confidence</option>
+        <label className="gb-field" style={{ maxWidth: 320 }}>
+          <span>Mock scenario</span>
+          <select className="gb-select" value={scenario} onChange={(e) => setScenario(e.target.value)}>
+            <option value="mixed">Mixed (some low-confidence)</option>
+            <option value="high_confidence">High confidence</option>
           </select>
         </label>
         <div>
@@ -257,7 +275,7 @@ export default function DocumentsPage() {
         <div className="gb-card" style={{ padding: "1.25rem", marginTop: "1rem" }}>
           <h3 className="gb-section-title" style={{ marginTop: 0 }}>3. Generate</h3>
           {pending.length > 0
-            ? <p style={{ color: "#b45309", margin: 0 }}>Generation is blocked until all {pending.length} flagged fields are reviewed.</p>
+            ? <p className="gb-notice-warn"><AlertIcon /> Generation is blocked until all {pending.length} flagged field{pending.length !== 1 ? "s are" : " is"} reviewed.</p>
             : <button className="gb-btn gb-btn-primary" onClick={doGenerate} disabled={busy || Boolean(form)}>
                 {form ? "Generated" : "Generate packet"}
               </button>}
@@ -276,16 +294,20 @@ export default function DocumentsPage() {
           <h3 className="gb-section-title" style={{ marginTop: 0 }}>4. Live policy check</h3>
           <button className="gb-btn gb-btn-secondary" onClick={doPolicy} disabled={busy}>Run policy check</button>
           {policy && (
-            <div style={{ marginTop: "0.75rem", fontSize: "0.85rem" }}>
-              <p style={{ margin: "0.25rem 0" }}>⏱ {policy.processing_time?.result?.summary || policy.processing_time?.source_title}</p>
+            <div style={{ marginTop: "0.75rem", fontSize: "0.85rem", display: "grid", gap: "0.5rem" }}>
+              <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.4rem", color: "var(--gb-muted)" }}>
+                <ClockIcon /> {policy.processing_time?.result?.summary || policy.processing_time?.source_title}
+              </p>
               {policy.policy_change?.result?.policy_change_detected && (
-                <p style={{ margin: "0.4rem 0", padding: "0.6rem", background: "#fff7ed", borderRadius: 8, color: "#9a3412" }}>
-                  ⚠ {policy.policy_change.result.summary}{" "}
-                  <a href={policy.policy_change.source_url} target="_blank" rel="noopener noreferrer">source</a>
+                <p className="gb-notice-warn">
+                  <AlertIcon />
+                  <span>{policy.policy_change.result.summary}{" "}
+                    <a href={policy.policy_change.source_url} target="_blank" rel="noopener noreferrer">source</a>
+                  </span>
                 </p>
               )}
               {policy.forced_field_review && (
-                <p style={{ color: "#b45309", fontWeight: 600 }}>
+                <p className="gb-state-warn" style={{ margin: 0, fontWeight: 700 }}>
                   A field was sent back to review — resolve it above before signing.
                 </p>
               )}
@@ -299,13 +321,13 @@ export default function DocumentsPage() {
         <div className="gb-card" style={{ padding: "1.25rem", marginTop: "1rem" }}>
           <h3 className="gb-section-title" style={{ marginTop: 0 }}>5. Sign</h3>
           {pending.length > 0
-            ? <p style={{ color: "#b45309", margin: 0 }}>Resolve the flagged field(s) before signing.</p>
+            ? <p className="gb-notice-warn"><AlertIcon /> Resolve the flagged field{pending.length !== 1 ? "s" : ""} before signing.</p>
             : <button className="gb-btn gb-btn-primary" onClick={doSign} disabled={busy || Boolean(signature)}>
                 {signature ? "Signed" : "Send for signature"}
               </button>}
           {signature && (
-            <p style={{ marginTop: "0.6rem", color: "#1a7f4b", fontWeight: 600 }}>
-              ✓ Signed — {signature.doc_type} tracker marked {signature.document_status}.
+            <p className="gb-state-ok" style={{ marginTop: "0.6rem", display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 700 }}>
+              <CheckIcon /> Signed — {signature.doc_type} tracker marked {signature.document_status}.
             </p>
           )}
         </div>

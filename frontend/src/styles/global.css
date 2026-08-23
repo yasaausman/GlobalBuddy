@@ -2826,15 +2826,15 @@ a {
   height: 8px;
   border-radius: 50%;
   background: var(--gb-muted);
-  animation: gb-typing-bounce 1.2s infinite ease-in-out;
+  animation: gb-typing-pulse 1.2s infinite cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .gb-typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .gb-typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes gb-typing-bounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-  40% { transform: translateY(-6px); opacity: 1; }
+@keyframes gb-typing-pulse {
+  0%, 80%, 100% { transform: translateY(0) scale(0.8); opacity: 0.35; }
+  40% { transform: translateY(-3px) scale(1); opacity: 1; }
 }
 
 .gb-chat-input-row {
@@ -2888,7 +2888,7 @@ a {
   padding: 0.5rem 0.75rem;
   background: rgba(79, 100, 121, 0.07);
   border-radius: var(--gb-radius-sm);
-  border-left: 3px solid var(--gb-border);
+  border: 1px solid var(--gb-border);
 }
 
 .gb-node-disclaimer {
@@ -2896,4 +2896,176 @@ a {
   color: var(--gb-muted);
   margin: 0.75rem 0 0;
   font-style: italic;
+}
+
+/* ==============================================================
+   M20 · Document pipeline — additive tokens & components.
+   Extends the gb-* system for /documents and /advisor.
+   Additive only: no existing rule is modified, so the other
+   pages render unchanged.
+   ============================================================== */
+:root {
+  --gb-success: #0f766e;
+  --gb-success-soft: rgba(14, 165, 164, 0.12);
+  --gb-info: #0284c7;
+  --gb-info-soft: rgba(2, 132, 199, 0.12);
+  --gb-warn: #d97706;
+  --gb-warn-soft: rgba(217, 119, 6, 0.12);
+  --gb-warn-ink: #9a3412;
+  --gb-danger-soft: rgba(185, 28, 28, 0.12);
+}
+
+/* Standalone controls that aren't wrapped in a .gb-field */
+.gb-input,
+.gb-textarea,
+.gb-select {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--gb-border);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.6rem 0.72rem;
+  font-size: 0.92rem;
+  color: var(--gb-ink);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.gb-textarea {
+  resize: vertical;
+  min-height: 2.8rem;
+  line-height: 1.45;
+  font-family: inherit;
+}
+.gb-input:focus,
+.gb-textarea:focus,
+.gb-select:focus {
+  outline: none;
+  border-color: var(--gb-border-strong);
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.14);
+}
+
+/* Pipeline stepper (I-20 → SSN packet stages) */
+.gb-doc-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.gb-doc-stepper li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--gb-border);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--gb-muted);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.gb-doc-stepper__num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  opacity: 0.85;
+}
+.gb-doc-stepper li[data-state="done"] {
+  background: var(--gb-success-soft);
+  border-color: rgba(14, 165, 164, 0.3);
+  color: var(--gb-success);
+}
+.gb-doc-stepper li[data-state="current"] {
+  background: linear-gradient(135deg, var(--gb-accent), var(--gb-accent-strong));
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(3, 105, 161, 0.22);
+}
+.gb-doc-stepper li[data-state="current"] .gb-doc-stepper__num {
+  opacity: 1;
+}
+
+/* Confidence meter on a reviewed field */
+.gb-conf-bar {
+  width: 90px;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--gb-border);
+  flex-shrink: 0;
+}
+.gb-conf-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* Semantic state text (paired with a label, never color-only) */
+.gb-state-ok { color: var(--gb-success); }
+.gb-state-info { color: var(--gb-info); }
+.gb-state-warn { color: var(--gb-warn); }
+
+/* Inline advisory notice (policy change, blocked generation) */
+.gb-notice-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--gb-radius-sm);
+  background: var(--gb-warn-soft);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  color: var(--gb-warn-ink);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.gb-notice-warn a { color: inherit; font-weight: 700; }
+.gb-notice-warn svg { flex-shrink: 0; margin-top: 0.12rem; }
+
+/* Machine-vs-human proportion bar (advisor "time saved") */
+.gb-split-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--gb-border);
+}
+.gb-split-bar__machine { background: var(--gb-success); }
+.gb-split-bar__human { background: var(--gb-warn); }
+
+/* Collapsible group header that keeps a visible focus ring */
+.gb-collapse-toggle {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: baseline;
+  gap: 1rem;
+  border-radius: 10px;
+  padding: 0.15rem 0.2rem;
+}
+.gb-collapse-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.28);
+}
+.gb-collapse-toggle .gb-collapse-chevron {
+  transition: transform 0.2s ease;
+  color: var(--gb-muted);
+}
+.gb-collapse-toggle[aria-expanded="true"] .gb-collapse-chevron {
+  transform: rotate(180deg);
+}
+
+/* Respect reduced-motion: keep state changes, drop the movement */
+@media (prefers-reduced-motion: reduce) {
+  .gb-btn,
+  .gb-btn:hover:not(:disabled),
+  .gb-journey-step,
+  .gb-journey-dot button,
+  .gb-doc-stepper li,
+  .gb-collapse-chevron,
+  .gb-input, .gb-textarea, .gb-select {
+    transition: none;
+    transform: none;
+  }
 }

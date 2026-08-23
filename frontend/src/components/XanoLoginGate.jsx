@@ -35,21 +35,21 @@ export default function XanoLoginGate({ title = "Document Center", blurb = "Sign
       <h2 className="gb-section-title" style={{ marginTop: 0 }}>{title}</h2>
       <p style={{ color: "var(--gb-muted)", marginTop: 0 }}>{blurb}</p>
       {error && <p className="gb-auth-error" role="alert">{error}</p>}
-      <form onSubmit={submit}>
+      <form onSubmit={submit} style={{ display: "grid", gap: "0.85rem" }}>
         {mode === "signup" && (
-          <div className="gb-field">
-            <label>Full name</label>
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-          </div>
+          <label className="gb-field">
+            <span>Full name</span>
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" required />
+          </label>
         )}
-        <div className="gb-field">
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div className="gb-field">
-          <label>Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
+        <label className="gb-field">
+          <span>Email</span>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+        </label>
+        <label className="gb-field">
+          <span>Password</span>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} required />
+        </label>
         <button type="submit" className="gb-btn gb-btn-primary gb-btn-full" disabled={busy}>
           {busy ? "…" : mode === "login" ? "Sign in" : "Create account"}
         </button>

@@ -12,25 +12,37 @@ function errText(e, fallback) {
   return e?.response?.data?.message || e?.response?.data?.detail || e?.message || fallback;
 }
 
+const ChevronIcon = () => (
+  <svg className="gb-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
 function SubmissionGroup({ uploadId, fields, onReview }) {
   const [open, setOpen] = useState(true);
+  const groupId = `sub-${uploadId}`;
   return (
-    <div style={{ borderTop: "1px solid var(--gb-border,#e5e5e5)", padding: "0.9rem 0" }}>
+    <div style={{ borderTop: "1px solid var(--gb-border)", padding: "0.9rem 0" }}>
       <button
         type="button"
+        className="gb-collapse-toggle"
+        aria-expanded={open}
+        aria-controls={groupId}
         onClick={() => setOpen(!open)}
-        style={{ all: "unset", cursor: "pointer", display: "flex", justifyContent: "space-between", width: "100%", alignItems: "baseline" }}
       >
-        <span style={{ fontWeight: 600 }}>Student #{fields[0]?.user_id} · upload {uploadId}</span>
-        <span style={{ fontSize: "0.82rem", color: "#b45309" }}>{fields.length} field{fields.length !== 1 ? "s" : ""} to review {open ? "▲" : "▼"}</span>
+        <span style={{ fontWeight: 700 }}>Student #{fields[0]?.user_id} · upload {uploadId}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.82rem", fontWeight: 700 }} className="gb-state-warn">
+          {fields.length} field{fields.length !== 1 ? "s" : ""} to review <ChevronIcon />
+        </span>
       </button>
       {open && (
-        <ul style={{ listStyle: "none", padding: 0, margin: "0.6rem 0 0" }}>
+        <ul id={groupId} style={{ listStyle: "none", padding: 0, margin: "0.6rem 0 0" }}>
           {fields.map((f) => (
-            <li key={f.id} style={{ padding: "0.5rem 0", borderTop: "1px dashed var(--gb-border,#eee)" }}>
+            <li key={f.id} style={{ padding: "0.5rem 0", borderTop: "1px dashed var(--gb-border)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "baseline" }}>
                 <span style={{ fontWeight: 600 }}>{f.field_label || f.field_key}</span>
-                <span style={{ fontSize: "0.75rem", color: "#b45309" }}>
+                <span className="gb-state-warn" style={{ fontSize: "0.75rem", fontWeight: 700 }}>
                   {Math.round((f.confidence ?? 0) * 100)}% · {f.match_label || "—"}
                   {f.citation?.page ? ` · src p.${f.citation.page} ${f.citation.region}` : ""}
                 </span>
@@ -127,9 +139,9 @@ export default function AdvisorQueuePage() {
               Extraction cleared <strong>{machine}</strong> of <strong>{total}</strong> fields automatically —
               you review the <strong>{human}</strong> that need human judgment.
             </p>
-            <div style={{ display: "flex", height: 10, borderRadius: 5, overflow: "hidden", background: "var(--gb-border,#eee)" }}>
-              <div style={{ width: `${machinePct}%`, background: "#1a7f4b" }} title={`${machinePct}% machine-cleared`} />
-              <div style={{ width: `${100 - machinePct}%`, background: "#b45309" }} title={`${100 - machinePct}% escalated`} />
+            <div className="gb-split-bar" role="img" aria-label={`${machinePct}% machine-cleared, ${100 - machinePct}% escalated to you`}>
+              <div className="gb-split-bar__machine" style={{ width: `${machinePct}%` }} />
+              <div className="gb-split-bar__human" style={{ width: `${100 - machinePct}%` }} />
             </div>
             <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem", color: "var(--gb-muted)" }}>
               {machinePct}% machine-cleared · {100 - machinePct}% escalated to you

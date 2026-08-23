@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-22T00:00:00Z",
+  "title": "Design System: Globalदोस्त",
+  "extensions": {
+    "colorMeta": {
+      "accent-teal": { "role": "primary", "displayName": "Companion Teal", "canonical": "#0ea5a4", "tonalRamp": ["#022c2b", "#04413f", "#066460", "#088c88", "#0ea5a4", "#3cc4c2", "#7bdcd9", "#c3f1ef"] },
+      "accent-sky": { "role": "secondary", "displayName": "Signal Sky", "canonical": "#0284c7", "tonalRamp": ["#03263a", "#053a58", "#065986", "#0270a8", "#0284c7", "#38a5de", "#7ac6ee", "#c3e6f9"] },
+      "ink": { "role": "neutral", "displayName": "Deep Slate Ink", "canonical": "#0f172a", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9"] },
+      "muted": { "role": "neutral", "displayName": "Muted Harbor", "canonical": "#4f6479", "tonalRamp": ["#1f2a35", "#2f3e4c", "#3f5163", "#4f6479", "#6c8195", "#93a4b4", "#bccad5", "#e5ecf1"] },
+      "success-ink": { "role": "semantic", "displayName": "Success Ink", "canonical": "#0f766e", "tonalRamp": ["#042f2b", "#06413c", "#0a5b53", "#0f766e", "#159389", "#2fb3a7", "#7ad2c9", "#c8ede9"] },
+      "warning-ink": { "role": "semantic", "displayName": "Warning Ochre", "canonical": "#d97706", "tonalRamp": ["#3d2102", "#5c3203", "#8a4c05", "#b86307", "#d97706", "#f0961f", "#f7bb6b", "#fbdcae"] },
+      "danger": { "role": "semantic", "displayName": "Danger Red", "canonical": "#b91c1c", "tonalRamp": ["#3f0a0a", "#5e0f0f", "#8a1616", "#b91c1c", "#dc4343", "#e97878", "#f2adad", "#f9dada"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headlines only — Sora, tight tracking, one per view." },
+      "title": { "displayName": "Title", "purpose": "Card and section headers, step titles — Sora." },
+      "body": { "displayName": "Body", "purpose": "All prose and control text — Nunito, ~68ch measure." },
+      "label": { "displayName": "Label", "purpose": "Uppercase wide-tracked micro-labels, kickers, step indices — Nunito 700." }
+    },
+    "shadows": [
+      { "name": "card-lift", "value": "0 18px 40px rgba(8, 47, 73, 0.12)", "purpose": "Default float for every .gb-card and panel — diffuse daylight, not drop-shadow." },
+      { "name": "accent-lift", "value": "0 10px 20px rgba(3, 105, 161, 0.25)", "purpose": "Under the primary gradient button; sky-tinted to belong to the button's own color." },
+      { "name": "mark-lift", "value": "0 10px 22px rgba(14, 165, 164, 0.28)", "purpose": "Under the teal brand logo tile." },
+      { "name": "focus-ring", "value": "0 0 0 3px rgba(45, 212, 191, 0.14)", "purpose": "Soft teal halo on focused inputs and active steps — the state signal, replaces the browser outline." }
+    ],
+    "motion": [
+      { "name": "lift", "value": "transform 0.18s ease", "purpose": "translateY(-1px) rise on button/card hover." },
+      { "name": "state", "value": "border-color 0.2s ease, box-shadow 0.2s ease", "purpose": "Border and ring transitions on focus/active." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "600px" },
+      { "name": "tablet", "value": "820px" },
+      { "name": "desktop", "value": "980px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one accent action per screen — teal→sky gradient, sky-tinted lift.",
+      "html": "<button class=\"ds-btn-primary\">Start document flow</button>",
+      "css": ".ds-btn-primary { border: 1px solid transparent; border-radius: 999px; padding: 0.62rem 1rem; font-weight: 700; color: #fff; background: linear-gradient(135deg, #0ea5a4, #0284c7); box-shadow: 0 10px 20px rgba(3,105,161,0.25); cursor: pointer; transition: transform 0.18s ease, box-shadow 0.2s ease; } .ds-btn-primary:hover { transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(45,212,191,0.35); } .ds-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Translucent teal wash for secondary actions.",
+      "html": "<button class=\"ds-btn-secondary\">Review fields</button>",
+      "css": ".ds-btn-secondary { border: 1px solid rgba(14,165,164,0.25); border-radius: 999px; padding: 0.62rem 1rem; font-weight: 700; color: #0f172a; background: rgba(14,165,164,0.09); cursor: pointer; transition: transform 0.18s ease, border-color 0.2s ease; } .ds-btn-secondary:hover { transform: translateY(-1px); border-color: rgba(14,165,164,0.45); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(45,212,191,0.2); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Translucent white, hairline border — lowest-emphasis action.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { border: 1px solid rgba(15,23,42,0.12); border-radius: 999px; padding: 0.62rem 1rem; font-weight: 700; color: #0f172a; background: rgba(255,255,255,0.72); cursor: pointer; transition: transform 0.18s ease, border-color 0.2s ease; } .ds-btn-ghost:hover { transform: translateY(-1px); border-color: rgba(14,165,164,0.3); } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(45,212,191,0.2); }"
+    },
+    {
+      "name": "Frosted Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The universal surface — translucent glass over the gradient, soft wide lift.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Extraction results</h3><p class=\"ds-card-body\">12 fields read from your I-20.</p></div>",
+      "css": ".ds-card { background: rgba(255,255,255,0.82); border: 1px solid rgba(15,23,42,0.12); border-radius: 18px; box-shadow: 0 18px 40px rgba(8,47,73,0.12); backdrop-filter: blur(10px); padding: 1.3rem; } .ds-card-title { margin: 0 0 0.5rem; font-family: 'Sora','Nunito',sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; color: #0f172a; } .ds-card-body { margin: 0; color: #4f6479; font-size: 0.92rem; line-height: 1.45; }"
+    },
+    {
+      "name": "Field Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Uppercase label over a near-opaque input with a soft teal focus ring.",
+      "html": "<label class=\"ds-field\"><span>SEVIS ID</span><input class=\"ds-field-input\" value=\"N0012345678\" /></label>",
+      "css": ".ds-field { display: grid; gap: 0.35rem; } .ds-field span { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4f6479; } .ds-field-input { width: 100%; border-radius: 10px; border: 1px solid rgba(15,23,42,0.12); background: rgba(255,255,255,0.95); padding: 0.6rem 0.72rem; font-size: 0.92rem; color: #0f172a; } .ds-field-input:focus { outline: none; border-color: rgba(14,165,164,0.6); box-shadow: 0 0 0 3px rgba(45,212,191,0.14); }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Pill tag — teal wash for tags, sky wash for actions.",
+      "html": "<span class=\"ds-chip\">F-1</span> <button class=\"ds-chip ds-chip-action\">Filter: needs review</button>",
+      "css": ".ds-chip { display: inline-block; border: 1px solid rgba(14,165,164,0.25); background: rgba(45,212,191,0.11); color: #0f766e; border-radius: 999px; padding: 0.3rem 0.62rem; font-size: 0.78rem; font-weight: 700; cursor: default; } .ds-chip-action { border-color: rgba(2,132,199,0.24); background: rgba(125,211,252,0.16); color: #0369a1; cursor: pointer; } .ds-chip-action:hover { border-color: rgba(2,132,199,0.5); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Dot + label state pill; ok teal-green, bad red.",
+      "html": "<span class=\"ds-pill ds-pill-ok\"><i class=\"ds-pill-dot\"></i>Auto-accepted</span> <span class=\"ds-pill ds-pill-bad\"><i class=\"ds-pill-dot\"></i>Needs review</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid rgba(15,23,42,0.12); background: rgba(255,255,255,0.94); border-radius: 999px; padding: 0.35rem 0.7rem; font-size: 0.78rem; font-weight: 700; } .ds-pill-ok { border-color: rgba(14,165,164,0.35); color: #0f766e; } .ds-pill-bad { border-color: rgba(185,28,28,0.35); color: #991b1b; } .ds-pill-dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }"
+    },
+    {
+      "name": "Stepper Step",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "The spine of every multi-step flow — index, Sora title, subtitle; active carries the teal ring.",
+      "html": "<button class=\"ds-step ds-step-current\"><span class=\"ds-step-index\">Step 3</span><span class=\"ds-step-title\">Review flagged fields</span><span class=\"ds-step-sub\">6 fields need a human</span></button>",
+      "css": ".ds-step { width: 100%; text-align: left; border: 1px solid rgba(15,23,42,0.12); background: rgba(255,255,255,0.84); border-radius: 12px; padding: 0.72rem 0.82rem; display: grid; gap: 0.12rem; cursor: pointer; transition: border-color 0.2s ease, box-shadow 0.2s ease; } .ds-step:hover { border-color: rgba(14,165,164,0.38); } .ds-step-current { border-color: rgba(14,165,164,0.3); box-shadow: 0 0 0 2px rgba(45,212,191,0.16); } .ds-step-index { font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.08em; color: #0284c7; font-weight: 700; } .ds-step-title { font-size: 1.05rem; font-family: 'Sora','Nunito',sans-serif; font-weight: 700; color: #0f172a; } .ds-step-sub { font-size: 0.86rem; color: #4f6479; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Clear Water",
+    "overview": "Globalदोस्त looks and feels like clear water over a calm aqua-to-sky floor. Frosted-glass surfaces float above a soft two-radial gradient; you can see the light coming through everything, and nothing is hidden behind an opaque panel. That translucency is not decoration — it is the product thesis made visible: a machine extracts a legal document, admits how sure it is about each field, cites the source region, and refuses to proceed when it isn't sure. The system is airy and floating — translucent white surfaces with real backdrop blur, generous 18px rounding, soft low-wide daylight shadows, pill-shaped controls that rise 1px on hover. Type pairs Sora (display, confident) with Nunito (body, warm). The one place airiness yields is the confidence and review surfaces: the glass stays but the information hardens into unambiguous, color-coded state. Calm is the resting tone; it never softens a warning.",
+    "keyCharacteristics": [
+      "Frosted-glass translucent surfaces over a soft aqua→sky radial-gradient page",
+      "One teal→sky accent gradient, spent only on the primary action per screen",
+      "Pill-shaped controls (999px) and generously rounded cards (18px)",
+      "Soft, wide, low-opacity shadows — daylight, not drop-shadow",
+      "Sora display + Nunito body; wide-tracked uppercase micro-labels",
+      "Warmth at rest, unambiguous color the moment stakes or uncertainty appear"
+    ],
+    "rules": [
+      { "name": "The One Gradient Rule", "body": "The teal→sky gradient appears once per screen, on the single primary action. Everything else is flat translucent glass. Its scarcity is what makes the primary action unmistakable.", "section": "colors" },
+      { "name": "The Palette-Locked State Rule", "body": "Success is deep teal-green (#0f766e), never a stock #22c55e; info is sky; warning is ochre; danger is #b91c1c. State colors are chosen to belong to this palette.", "section": "colors" },
+      { "name": "The Sora-For-Structure Rule", "body": "Sora is only for display and titles. Body, labels, controls, and data are always Nunito.", "section": "typography" },
+      { "name": "The Glass-Over-Gradient Rule", "body": "Surfaces are translucent white with a real backdrop blur, always floating over the aqua→sky gradient — never opaque, never flat-white.", "section": "elevation" },
+      { "name": "The Lift-On-Hover Rule", "body": "Buttons and interactive cards rise translateY(-1px) on hover; the resting state is calm, motion confirms interactivity.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep every surface translucent glass over the gradient — rgba(255,255,255,0.82–0.94) + backdrop-filter blur.",
+      "Do spend the teal→sky gradient on exactly one primary action per screen.",
+      "Do set headings and titles in Sora, everything else in Nunito.",
+      "Do use fully-round pills (999px) for buttons, chips, badges; 18px for cards, 10–12px for inputs.",
+      "Do signal focus and active state with the soft teal ring + teal-tinted border-strong, never a hard outline.",
+      "Do keep semantic colors inside the palette: Success-Ink teal-green, Signal Sky info, ochre warning, #b91c1c danger.",
+      "Do harden the confidence/review surfaces: an uncertain, high-stakes, or policy-flagged field must be unambiguously color-coded."
+    ],
+    "donts": [
+      "Don't use opaque flat-white panels or hard drop-shadows.",
+      "Don't introduce a second accent gradient or a third accent hue — the world is teal + sky only.",
+      "Don't set body text, buttons, or labels in Sora.",
+      "Don't use pure black (#000) for text — ink is Deep Slate (#0f172a).",
+      "Don't show a raw confidence number as if it were a probability; carry its match label and cited source region.",
+      "Don't let the calm palette soften a warning: a needs-review or policy-change state is never in a reassuring color."
+    ]
+  }
+}
