@@ -1,16 +1,19 @@
-// M19 §6.6, §3.8: mock-mode SerpApi lookup. Three lookup types per the plan
-// doc: processing_time, school_requirements, policy_change. Directly writes
-// the policy_lookups row (rather than returning a computed value) so this
-// function can reuse the confirmed `var $x {value=null}` + `db.add ... as $x`
-// reassignment pattern across conditional branches, instead of reassigning a
-// plain computed var (unconfirmed -- see documents_generate_POST.xs's header
-// comment for why that's avoided).
+// M19 §6.6, §3.8: SerpApi lookup with mock + LIVE branches. Three lookup
+// types: processing_time, school_requirements, policy_change. Writes the
+// policy_lookups row directly so each branch can use the confirmed
+// `var $x {value=null}` + `db.add ... as $x` reassignment pattern (plain
+// computed-var reassignment across conditionals is unconfirmed here).
 //
-// Mock content for policy_change deliberately cites the real 16 July 2026
-// DHS rule (plan doc §1.1) rather than placeholder text -- a true, dated
-// fact, so the mock response is honest, not fabricated. Live branch (real
-// SerpApi AI Overviews call) deferred until SERPAPI_MODE env-var read syntax
-// is confirmed.
+// LIVE branch (SERPAPI_MODE == "live") calls the real SerpApi Google Search
+// engine and cites organic_results[0] (title/link/snippet). Confirmed live:
+// api.request returns {request, response:{status, headers, result}}, and the
+// SerpApi payload is $resp.response.result. Custom workspace env vars are read
+// as $env.NAME (no inner $ -- that form is only for Xano built-ins). For the
+// policy_change query the real DHS "Fixed Time Period of Admission" final rule
+// is the top organic result as of 2026, so the cited summary is genuine.
+//
+// MOCK branches (default when SERPAPI_MODE != "live") keep the honest,
+// real-dated 16 July 2026 DHS content so zero-key demos stay truthful.
 function "Vendor/serpapi_lookup" {
   input {
     int user_id
@@ -25,12 +28,83 @@ function "Vendor/serpapi_lookup" {
       error = "lookup_type must be processing_time, school_requirements, or policy_change."
     }
 
+    var $mode {
+      value = $env.SERPAPI_MODE
+    }
+    var $key {
+      value = $env.SERPAPI_API_KEY
+    }
     var $lookup {
       value = null
     }
 
+    // ===== LIVE branches =====
     conditional {
-      if ($input.lookup_type == "processing_time") {
+      if ($mode == "live" && $input.lookup_type == "processing_time") {
+        api.request {
+          url = "https://serpapi.com/search.json"
+          method = "GET"
+          params = {engine: "google", q: "USCIS Form I-765 EAD processing time 2026", api_key: $key}
+        } as $resp
+        db.add policy_lookups {
+          data = {
+            user_id             : $input.user_id
+            form_generation_id  : $input.form_generation_id
+            query               : "USCIS Form I-765 EAD processing time 2026"
+            provider            : "serpapi"
+            result              : {policy_change_detected: false, summary: $resp.response.result.organic_results[0].snippet}
+            source_url          : $resp.response.result.organic_results[0].link
+            source_title        : $resp.response.result.organic_results[0].title
+          }
+        } as $lookup
+      }
+    }
+
+    conditional {
+      if ($mode == "live" && $input.lookup_type == "school_requirements") {
+        api.request {
+          url = "https://serpapi.com/search.json"
+          method = "GET"
+          params = {engine: "google", q: $input.context ~ " ISSS international student SSN support letter requirements", api_key: $key}
+        } as $resp
+        db.add policy_lookups {
+          data = {
+            user_id             : $input.user_id
+            form_generation_id  : $input.form_generation_id
+            query               : $input.context ~ " ISSS SSN support letter requirements"
+            provider            : "serpapi"
+            result              : {policy_change_detected: false, summary: $resp.response.result.organic_results[0].snippet}
+            source_url          : $resp.response.result.organic_results[0].link
+            source_title        : $resp.response.result.organic_results[0].title
+          }
+        } as $lookup
+      }
+    }
+
+    conditional {
+      if ($mode == "live" && $input.lookup_type == "policy_change") {
+        api.request {
+          url = "https://serpapi.com/search.json"
+          method = "GET"
+          params = {engine: "google", q: "F-1 student duration of status DHS final rule 2026 OPT grace period", api_key: $key}
+        } as $resp
+        db.add policy_lookups {
+          data = {
+            user_id             : $input.user_id
+            form_generation_id  : $input.form_generation_id
+            query               : "F-1 student duration of status DHS final rule 2026"
+            provider            : "serpapi"
+            result              : {policy_change_detected: true, summary: $resp.response.result.organic_results[0].snippet}
+            source_url          : $resp.response.result.organic_results[0].link
+            source_title        : $resp.response.result.organic_results[0].title
+          }
+        } as $lookup
+      }
+    }
+
+    // ===== MOCK branches (default) =====
+    conditional {
+      if ($mode != "live" && $input.lookup_type == "processing_time") {
         db.add policy_lookups {
           data = {
             user_id             : $input.user_id
@@ -46,7 +120,7 @@ function "Vendor/serpapi_lookup" {
     }
 
     conditional {
-      if ($input.lookup_type == "school_requirements") {
+      if ($mode != "live" && $input.lookup_type == "school_requirements") {
         db.add policy_lookups {
           data = {
             user_id             : $input.user_id
@@ -62,7 +136,7 @@ function "Vendor/serpapi_lookup" {
     }
 
     conditional {
-      if ($input.lookup_type == "policy_change") {
+      if ($mode != "live" && $input.lookup_type == "policy_change") {
         db.add policy_lookups {
           data = {
             user_id             : $input.user_id

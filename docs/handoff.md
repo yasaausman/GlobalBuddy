@@ -33,6 +33,18 @@ XanoScript has no full spec; these were learned the hard way and are the rules g
 - **`str | None` needs Python 3.12** for the backend test venv (system 3.9 fails). Use `python3.12`; venv at `backend/.venv` (gitignored).
 - Two `xano sandbox push` timeouts (`ECONNRESET`) on large batches — just retry.
 
+## CONFIRMED: live-vendor XanoScript syntax (unblocks all 4 vendors)
+
+Cracked the outbound-HTTP + env-var syntax that was blocking every live vendor, verified against the live workspace (`xano workspace push -d xano --include <file> --force`, then curl the endpoint):
+- **Outbound HTTP:** `api.request { url=… method="GET" params={k:v, …} } as $resp`. The result is an envelope: `$resp.response.result` is the parsed JSON body (`.status`/`.headers` also there). Nested + array access works: `$resp.response.result.organic_results[0].snippet`.
+- **Env vars:** custom workspace vars are `$env.NAME` (NO inner `$`). The inner-`$` form (`$env.$api_baseurl`) is only for Xano built-ins. This is why the first attempts failed — `$env.$SERPAPI_API_KEY` silently returns null.
+- **Verify env exists:** `xano workspace pull -d <scratch> --env` writes `workspace/<name>.xs` with an `env = { NAME: "value" }` block (real key values — keep it out of the repo; the tracked `xano/workspace/*.xs` has NO env block, so keys never land in git).
+- **Deploy loop I used:** edit `.xs` → `push --dry-run` (shows change plan; does NOT validate the script body) → `push --force` (server validates the XanoScript; accepts = valid) → curl the endpoint to check runtime. `xano function run "Name"` executes a function directly too.
+- **Env writes are dangerous:** never `push --env` from the repo (its workspace file has an empty env block → would wipe the keys). Flip mode flags (e.g. `SERPAPI_MODE=live`) in the Xano **dashboard**, not via CLI.
+- **No per-object delete via CLI** (only `push --sync --delete`, which needs `--force` and failed preview here). Delete temp endpoints/functions in the dashboard.
+
+**SerpApi is LIVE + verified** (M19): `Vendor/serpapi_lookup` now has mock + live branches gated on `$env.SERPAPI_MODE == "live"`. Live `policy_change` cites the real DHS "Fixed Time Period of Admission" final rule (top organic result) — title/link/snippet written into `policy_lookups`. Mock branch unchanged (honest 16-Jul-2026 DHS content). **To activate in the pipeline: add `SERPAPI_MODE=live` to Xano env (dashboard).** Two harmless temp objects remain in the workspace to delete in the dashboard: function `_httpprobe`, API `documents/serpapi-test` (retired to an inert stub). This same `api.request`/`$env.NAME` pattern now makes Nutrient/Doctavian/Foxit live-branches straightforward — Nutrient still also needs a real document to send (upload stores `doc_type` only).
+
 ## Next step
 
 The **impeccable design pass** is DONE (not yet committed — working tree dirty):
