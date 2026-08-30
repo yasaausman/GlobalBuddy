@@ -1,0 +1,12 @@
+{"schema":{"type":"object","properties":{
+  "sevis_id":{"type":"string","description":"SEVIS identifier, starts with N"},
+  "student_full_name":{"type":"string","description":"Student full name"},
+  "date_of_birth":{"type":"string"},
+  "country_of_citizenship":{"type":"string"},
+  "visa_status":{"type":"string","description":"Class of admission, e.g. F-1"},
+  "school_name":{"type":"string"},
+  "program_of_study":{"type":"string"},
+  "program_end_date":{"type":"string"},
+  "funding_source":{"type":"string"},
+  "funding_amount":{"type":"string","description":"Estimated total funds"}
+}}}
