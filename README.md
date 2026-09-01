@@ -6,6 +6,29 @@ The repo still contains a legacy Neo4j adapter and Cypher seed packs. The active
 
 Motto: *You didn't come this far to figure it out alone.*
 
+---
+
+## 🏆 Hackathon build: the ISSS document pipeline
+
+The current build focus (DevNetwork [API + Cloud + AI] Hackathon 2026) is an **AI document pipeline** that rebuilds the university ISSS workflow: **I-20 → signed SSN support packet**, with a human in the loop wherever the model is unsure. Full write-up: [`docs/hackathon-submission.md`](./docs/hackathon-submission.md).
+
+**Backend of record is [Xano](https://xano.com)** (auth, tables, gates, branch logic, and the runtime AI agent); the FastAPI service below is a stateless sidecar. The pipeline runs **end-to-end in mock mode with zero vendor keys.**
+
+### Run it (mock mode, no keys)
+```bash
+cd frontend && npm install && npm run dev      # http://localhost:5173
+```
+No `.env` needed — the Xano workspace defaults are baked in (see `frontend/.env.example`). The backend sidecar is only needed for the older plan/chat/graph features, not the pipeline.
+
+- **Student pipeline:** open **`/documents`** → sign in → upload I-20 → review flagged fields → generate → policy check → sign.
+- **Advisor queue:** open **`/advisor`** → the role-gated review queue with the machine-vs-human "time saved" bar.
+- **Test accounts (Xano):** student `m18-test@example.com` / `TestPass123` · advisor `advisor@example.com` / `TestPass123`.
+
+### Live vs mock
+Everything runs on seeded fixtures by default. Two vendors are wired live in the flow (**SerpApi** policy check, **Foxit eSign**); **Nutrient** extraction and **Doctavian** generation are verified against their real APIs (see `assets/nutrient-demo/` and the write-up). Vendor keys live in **Xano environment variables**; a per-vendor `*_MODE=live` flag flips each on.
+
+---
+
 ## What is live now
 
 - **Step 1 - Profile setup wizard**
@@ -144,12 +167,10 @@ python -m app.db.seed_data
 ```bash
 cd frontend
 npm install
-echo 'VITE_API_BASE_URL=http://127.0.0.1:8000' > .env.local
-echo 'VITE_NEON_AUTH_URL=' >> .env.local
 npm run dev
 ```
 
-Optional: set `VITE_NEON_AUTH_URL` when Neon Auth is enabled and `VITE_API_TIMEOUT_MS` (default `180000`).
+No env file is required — the document pipeline works out of the box (Xano defaults are baked in). To override anything, copy `frontend/.env.example` to `.env.local`; every var there is optional. The FastAPI-backed features (plan/chat/graph) use `VITE_API_BASE_URL` (default `http://127.0.0.1:8000`).
 
 ## Demo flow
 
