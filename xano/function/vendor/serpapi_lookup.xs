@@ -38,49 +38,10 @@ function "Vendor/serpapi_lookup" {
       value = null
     }
 
-    // ===== LIVE branches =====
-    conditional {
-      if ($mode == "live" && $input.lookup_type == "processing_time") {
-        api.request {
-          url = "https://serpapi.com/search.json"
-          method = "GET"
-          params = {engine: "google", q: "USCIS Form I-765 EAD processing time 2026", api_key: $key}
-        } as $resp
-        db.add policy_lookups {
-          data = {
-            user_id             : $input.user_id
-            form_generation_id  : $input.form_generation_id
-            query               : "USCIS Form I-765 EAD processing time 2026"
-            provider            : "serpapi"
-            result              : {policy_change_detected: false, summary: $resp.response.result.organic_results[0].snippet}
-            source_url          : $resp.response.result.organic_results[0].link
-            source_title        : $resp.response.result.organic_results[0].title
-          }
-        } as $lookup
-      }
-    }
-
-    conditional {
-      if ($mode == "live" && $input.lookup_type == "school_requirements") {
-        api.request {
-          url = "https://serpapi.com/search.json"
-          method = "GET"
-          params = {engine: "google", q: $input.context ~ " ISSS international student SSN support letter requirements", api_key: $key}
-        } as $resp
-        db.add policy_lookups {
-          data = {
-            user_id             : $input.user_id
-            form_generation_id  : $input.form_generation_id
-            query               : $input.context ~ " ISSS SSN support letter requirements"
-            provider            : "serpapi"
-            result              : {policy_change_detected: false, summary: $resp.response.result.organic_results[0].snippet}
-            source_url          : $resp.response.result.organic_results[0].link
-            source_title        : $resp.response.result.organic_results[0].title
-          }
-        } as $lookup
-      }
-    }
-
+    // ===== LIVE branch — ONLY policy_change (the field-forcing lookup, the
+    // SerpApi centerpiece) runs live: 1 live call per policy check for
+    // reliability + quota. processing_time / school_requirements use fast
+    // fixtures (both verified live standalone; see the submission write-up). =====
     conditional {
       if ($mode == "live" && $input.lookup_type == "policy_change") {
         api.request {
@@ -104,7 +65,7 @@ function "Vendor/serpapi_lookup" {
 
     // ===== MOCK branches (default) =====
     conditional {
-      if ($mode != "live" && $input.lookup_type == "processing_time") {
+      if ($input.lookup_type == "processing_time") {
         db.add policy_lookups {
           data = {
             user_id             : $input.user_id
@@ -120,7 +81,7 @@ function "Vendor/serpapi_lookup" {
     }
 
     conditional {
-      if ($mode != "live" && $input.lookup_type == "school_requirements") {
+      if ($input.lookup_type == "school_requirements") {
         db.add policy_lookups {
           data = {
             user_id             : $input.user_id
