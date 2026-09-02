@@ -111,20 +111,24 @@ per-submission audit trail, and a machine-vs-human "time saved" bar.
 
 ### SerpApi — live data that changes agent behavior · **LIVE**
 
-Three lookups run against SerpApi's live Google engine: processing time, school ISSS requirements, and
-**policy changes that force a field back to human review**. The third is the point: for the policy-change
-query the **real DHS "Establishing a Fixed Time Period of Admission" final rule** is the top organic
-result (`studyinthestates.dhs.gov`), and we cite its title/link/snippet. A detected change **forces
-`program_end_date` back to `needs_review` once** (guarded by an audit event so re-checks don't loop),
-and the agent then **correctly refuses to sign**.
+The policy check runs three lookups — processing time, school ISSS requirements, and **policy changes
+that force a field back to human review**. The third is the point and **runs live against SerpApi's
+Google engine**: for that query the **real DHS "Establishing a Fixed Time Period of Admission" final
+rule** is the top organic result (`studyinthestates.dhs.gov`), and we cite its title/link/snippet. A
+detected change **forces `program_end_date` back to `needs_review` once** (guarded by an audit event so
+re-checks don't loop), and the agent then **correctly refuses to sign**.
 
-**Verified live, end to end:** the full agent run — plain prompt → refuse to generate (fields need
-review) → human confirms → generate → **live SerpApi** catches the DHS rule → force re-review → **agent
-refuses to sign** → human resolves → sign. The other two lookups return real government sources too
-(USCIS `egov.uscis.gov`; the actual University of Illinois ISSS SSN page). This is live search data
-changing agent _behavior_, not just page content — every template written before 16 July 2026 generates
-a wrong document today, and the live check is what catches it. (`Vendor/serpapi_lookup`, gated on
-`SERPAPI_MODE=live`.)
+**Verified live, end to end (repeatedly):** the full agent run — plain prompt → refuse to generate
+(fields need review) → human confirms → generate → **live SerpApi** catches the DHS rule → force
+re-review → **agent refuses to sign** → human resolves → sign. This is live search data changing agent
+_behavior_, not just page content — every template written before 16 July 2026 generates a wrong
+document today, and the live check catches it. (`Vendor/serpapi_lookup`, gated on `SERPAPI_MODE=live`.)
+
+**Engineering note (honest):** only the policy-change lookup runs live in the flow — 1 live call per
+check, for reliability inside the agent's tool execution and to conserve the free-tier search quota. The
+processing-time and school-requirements lookups use fixtures in the flow but were **verified live
+standalone** returning real government sources (USCIS `egov.uscis.gov`; the actual University of Illinois
+ISSS SSN page).
 
 ### Foxit — the agent boundary · **LIVE (eSign + agent)**
 

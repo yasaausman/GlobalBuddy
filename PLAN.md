@@ -405,17 +405,19 @@ Tasks:
 Full spec: `docs/xano-document-pipeline-plan.md` §5. **Submit before 3 Sep, 10:00am PDT.**
 
 Tasks:
-- [ ] Storyboard both videos (1 Sep) — Done when: shot lists exist for each
-- [ ] Main demo video, **2–4 min**, recorded in `live` mode — ISSS problem → upload → confidence in the Viewer → advisor reviews 3 escalated fields → SerpApi flags a policy change → branch resolves → packet assembled → signed
-- [ ] Foxit demo video, **1–3 min** (shorter than the others) — plain prompt → agent refuses to generate → human reviews → PDF Services assembles → eSign → person signs
-- [ ] `docs/hackathon-submission.md` with per-track write-ups — Done when: each track's specific ask is answered
-- [ ] Xano **build story**: software replaced (Terra Dotta/Sunapsis, 700+ universities), why, AI tools used, build duration, what would have taken significantly longer without AI + Xano — Done when: explicitly written, it's a stated requirement. The honest answer is XanoScript + Xano CLI + Claude Code
-- [ ] Lead every write-up with the market case — the 16 July 2026 D/S rule, OPT grace 60→30 days, 6–10 month I-765 delays, and a $17.7B SIS market growing 14.6% — Done when: **Concept** and **Feasibility** are argued with dates and numbers, not adjectives
-- [ ] Nutrient's required one-liner on where DWS does the heavy lifting and why — Done when: written
-- [ ] Foxit: defend the agent/human boundary and the Xano-vs-"agent calls eSign directly" tension — Done when: the choice is argued, not glossed
-- [ ] SerpApi: show how live data changed agent behaviour, not just page content — Done when: lookup 3 is the centrepiece
-- [ ] Public repo, `.env.example` for every new key, README quickstart **verified from a clean clone** — Done when: a fresh clone runs in mock mode with no vendor keys
-- [ ] Update `docs/demo-runbook.md`; confirm no credentials or real student documents are committed
+- [x] Storyboard both videos — **DONE.** Full shot-by-shot scripts for **2 presenters** (A=story, B=build) for both cuts in `docs/demo-runbook.md`
+- [ ] Main demo video, **2–4 min**, recorded in `live` mode — ISSS problem → upload → confidence + citations → advisor reviews escalated fields → SerpApi flags the policy change → agent refuses → resolve → sign. **Script ready; recording pending (user, 2 Sep evening).**
+- [ ] Foxit demo video, **1–3 min** — plain prompt → agent refuses to generate → human reviews → real eSign envelope. **Script ready; recording pending.**
+- [x] `docs/hackathon-submission.md` with per-track write-ups — **DONE + rewritten to the real verified state** (each track marked LIVE / PROVEN / DEFERRED)
+- [x] Xano **build story** — DONE (in the write-up): Terra Dotta/Sunapsis replaced; AI tools = XanoScript + Xano CLI + Claude Code; every live vendor call is a CLI-deployed `api.request` block
+- [x] Lead with the market case — DONE (July 2026 D/S rule, OPT 60→30, I-765 backlog/fee, $17.7B SIS market) with dates and numbers
+- [x] Nutrient one-liner — DONE (extraction boundary; uncalibrated-confidence point; **real extraction verified**, evidence in `assets/nutrient-demo/`)
+- [x] Foxit boundary — DONE (agent cannot self-approve; eSign as a **direct call**; corrected unified-credential auth reality)
+- [x] SerpApi live-data-changes-behaviour — DONE (policy_change lookup is live + is the centrepiece; forces re-review; reduced to 1 live call for reliability + quota)
+- [x] Public repo, `.env.example`, README quickstart **verified from a clean clone** — DONE (`frontend/.env.example` added, README pipeline quickstart, frontend builds clean, runs in mock mode with no keys)
+- [x] Update `docs/demo-runbook.md`; **no credentials or real student documents committed** — DONE (verified across working tree + full git history; only synthetic I-20 in `assets/`)
+
+**Remaining for M21:** record + upload the 2 videos (scripts ready), and optionally add source links for the RPI/market-size figures. Minor: delete the retired Xano test endpoints (`serpapi-test`, `foxit-test`, `_httpprobe`) and unused `FOXIT_ESIGN_*` env vars in the dashboard.
 
 ---
 
