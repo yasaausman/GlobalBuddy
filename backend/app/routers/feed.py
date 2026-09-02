@@ -105,7 +105,7 @@ async def get_feed(
 
 
 @router.post("/save", status_code=204)
-async def save_item(payload: SaveRequest, request: Request) -> None:
+async def save_item(payload: SaveRequest, request: Request):
     principal = require_principal(request)
     db = getattr(request.app.state, "db", None)
     if db is None or not db.enabled:
@@ -120,7 +120,7 @@ async def save_item(payload: SaveRequest, request: Request) -> None:
 
 
 @router.delete("/save/{content_id}", status_code=204)
-async def unsave_item(content_id: str, request: Request, content_source: str = Query(default="markdown")) -> None:
+async def unsave_item(content_id: str, request: Request, content_source: str = Query(default="markdown")):
     principal = require_principal(request)
     db = getattr(request.app.state, "db", None)
     if db is None or not db.enabled:

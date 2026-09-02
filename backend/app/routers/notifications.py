@@ -60,7 +60,7 @@ async def list_notifications(request: Request) -> NotificationList:
 
 
 @router.post("/{notification_id}/read", status_code=204)
-async def mark_read(notification_id: str, request: Request) -> None:
+async def mark_read(notification_id: str, request: Request):
     principal = require_principal(request)
     db = _require_db(request)
     profile = await repositories.get_or_create_profile_from_claims(db, principal.claims)
@@ -68,7 +68,7 @@ async def mark_read(notification_id: str, request: Request) -> None:
 
 
 @router.post("/read-all", status_code=204)
-async def mark_all_read(request: Request) -> None:
+async def mark_all_read(request: Request):
     principal = require_principal(request)
     db = _require_db(request)
     profile = await repositories.get_or_create_profile_from_claims(db, principal.claims)
